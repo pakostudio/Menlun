@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Menlun — Vista de equipo</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:      #FAFAF8;
+    --surface: #F4F3EF;
+    --border:  #E5E3DC;
+    --text:    #1A1916;
+    --muted:   #6B6A66;
+    --green:   #3B6D11;
+    --gbg:     #EAF3DE;
+    --amber:   #854F0B;
+    --abg:     #FAEEDA;
+    --red:     #A32D2D;
+    --rbg:     #FCEBEB;
+    --accent:  #1D6F4E;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .wrapper { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; font-size: 13px;
+  }
+  .header-title { font-size: 16px; font-weight: 600; }
+  .header-sub   { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .btn-refresh {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 7px; cursor: pointer; font-size: 12px; color: var(--muted);
+    transition: all .15s;
+  }
+  .btn-refresh:hover { background: var(--border); color: var(--text); }
+  .btn-refresh.loading { opacity: .6; pointer-events: none; }
+  .spin { animation: spin .8s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+  .tab {
+    padding: 7px 18px;
+    border-radius: 7px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted);
+    font-size: 13px; cursor: pointer; transition: all .15s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tab.active {
+    background: var(--surface); color: var(--text);
+    border-color: #C5C3BB; font-weight: 500;
+  }
+
+  /* ── Métricas ── */
+  .metrics {
+    display: grid; gap: 10px; margin-bottom: 20px;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .metric {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 9px; padding: 14px 16px;
+  }
+  .metric-num { font-size: 22px; font-weight: 600; }
+  .metric-lbl { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .metric-num.red   { color: var(--red); }
+  .metric-num.amber { color: var(--amber); }
+
+  /* ── Tabla ── */
+  .table-wrap { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .table-row {
+    display: grid; align-items: center;
+    padding: 11px 16px; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .table-row:last-child { border-bottom: none; }
+  .table-row.head {
+    background: var(--surface);
+    font-size: 11px; color: var(--muted);
+    font-weight: 500; letter-spacing: .04em;
+    padding: 9px 16px;
+  }
+  .table-row.alert { background: rgba(162,45,45,.04); }
+
+  /* Columnas prospectos */
+  .row-p { grid-template-columns: 2fr 1.2fr 1fr 1fr 90px; gap: 12px; }
+  /* Columnas clientes */
+  .row-c { grid-template-columns: 1.8fr 1fr 1.1fr 1.6fr 90px; gap: 12px; }
+
+  .empresa-name  { font-weight: 500; }
+  .empresa-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .muted         { color: var(--muted); font-size: 12px; }
+  .date-alert    { color: var(--red); font-size: 12px; }
+  .date-warn     { color: var(--amber); font-size: 11px; font-weight: 500; }
+
+  /* Badges */
+  .badge {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 10px; font-size: 11px; font-weight: 500;
+  }
+  .badge-green  { background: var(--gbg); color: var(--green); }
+  .badge-amber  { background: var(--abg); color: var(--amber); }
+  .badge-red    { background: var(--rbg); color: var(--red); }
+  .badge-gray   { background: var(--surface); color: var(--muted); }
+
+  /* ── Panel visibility ── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Empty / Loading states ── */
+  .state-msg {
+    text-align: center; padding: 40px 20px;
+    color: var(--muted); font-size: 13px;
+  }
+
+  /* ── Timestamp ── */
+  .last-update { font-size: 11px; color: var(--muted); text-align: right; margin-top: 10px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 700px) {
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .row-p, .row-c { grid-template-columns: 1fr; }
+    .table-row.head { display: none; }
+    .table-row { gap: 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">M</div>
+      <div>
+        <div class="header-title">Menlun — Vista de equipo</div>
+        <div class="header-sub">Solo lectura · se actualiza automáticamente</div>
+      </div>
+    </div>
+    <button class="btn-refresh" id="btnRefresh" onclick="cargarTodo()">
+      <span id="iconRefresh">↻</span> Actualizar
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tab-p" onclick="switchTab('p')">
+      Prospectos <span class="badge badge-gray" id="cnt-p">—</span>
+    </button>
+    <button class="tab" id="tab-c" onclick="switchTab('c')">
+      Clientes activos <span class="badge badge-green" id="cnt-c">—</span>
+    </button>
+  </div>
+
+  <!-- ── PANEL PROSPECTOS ── -->
+  <div id="panel-p" class="panel active">
+    <div class="metrics" id="metrics-p">
+      <div class="metric"><div class="metric-num" id="m-p-total">—</div><div class="metric-lbl">Leads activos</div></div>
+      <div class="metric"><div class="metric-num" id="m-p-propuesta">—</div><div class="metric-lbl">En propuesta</div></div>
+      <div class="metric"><div class="metric-num red" id="m-p-frios">—</div><div class="metric-lbl">Sin mover +7 días</div></div>
+      <div class="metric"><div class="metric-num" id="m-p-valor">—</div><div class="metric-lbl">Valor pipeline</div></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-row row-p head">
+        <span>Empresa</span><span>Etapa</span><span>Responsable</span><span>Último mov.</span><span>Alerta</span>
+      </div>
+      <div id="rows-p"><div class="state-msg">Cargando...</div></div>
+    </div>
+  </div>
+
+  <!-- ── PANEL CLIENTES ── -->
+  <div id="panel-c" class="panel">
+    <div class="metrics" id="metrics-c">
+      <div class="metric"><div class="metric-num" id="m-c-total">—</div><div class="metric-lbl">Clientes activos</div></div>
+      <div class="metric"><div class="metric-num red" id="m-c-frios">—</div><div class="metric-lbl">Sin contacto +14 días</div></div>
+      <div class="metric"><div class="metric-num amber" id="m-c-hoy">—</div><div class="metric-lbl">Acción pendiente hoy</div></div>
+      <div class="metric"><div class="metric-num" id="m-c-valor">—</div><div class="metric-lbl">Valor cartera</div></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-row row-c head">
+        <span>Cliente</span><span>Responsable</span><span>Último contacto</span><span>Próxima acción</span><span>Estatus</span>
+      </div>
+      <div id="rows-c"><div class="state-msg">Cargando...</div></div>
+    </div>
+  </div>
+
+  <div class="last-update" id="lastUpdate"></div>
+</div>
+
+<script>
+// ⚠️ REEMPLAZAR con la URL de tu Apps Script publicado
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxACqAOQ4qjHH3UBaT6ekGN4iJ9TTl6cYSomXYLz-rLYMi1VtSS-s2qWuBSUK1I9Hsc/exec';
+
+let tabActiva = 'p';
+
+// ─── Tabs ────────────────────────────────────────────────────
+function switchTab(t) {
+  tabActiva = t;
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + t).classList.add('active');
+}
+
+// ─── Carga de datos ──────────────────────────────────────────
+async function cargarTodo() {
+  setLoading(true);
+  try {
+    const [prospectos, clientes] = await Promise.all([
+      fetchTab('prospectos'),
+      fetchTab('clientes')
+    ]);
+    renderProspectos(prospectos);
+    renderClientes(clientes);
+    document.getElementById('lastUpdate').textContent =
+      'Última actualización: ' + new Date().toLocaleTimeString('es-MX');
+  } catch (e) {
+    console.error(e);
+  }
+  setLoading(false);
+}
+
+async function fetchTab(tab) {
+  const res = await fetch(`${SCRIPT_URL}?tab=${tab}`);
+  const data = await res.json();
+  return data.rows || [];
+}
+
+function setLoading(on) {
+  const btn  = document.getElementById('btnRefresh');
+  const icon = document.getElementById('iconRefresh');
+  btn.classList.toggle('loading', on);
+  icon.textContent = on ? '↻' : '↻';
+  icon.classList.toggle('spin', on);
+}
+
+// ─── Utilidades ──────────────────────────────────────────────
+function diasDesde(fechaStr) {
+  if (!fechaStr) return 999;
+  const hoy   = new Date(); hoy.setHours(0,0,0,0);
+  const fecha = new Date(fechaStr); fecha.setHours(0,0,0,0);
+  return Math.floor((hoy - fecha) / 86400000);
+}
+
+function formatFecha(fechaStr) {
+  if (!fechaStr) return '—';
+  const d = new Date(fechaStr);
+  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
+}
+
+function diasTexto(dias) {
+  if (dias === 0) return 'Hoy';
+  if (dias === 1) return 'Ayer';
+  return `Hace ${dias} días`;
+}
+
+function formatValor(v) {
+  if (!v) return '—';
+  const n = parseFloat(String(v).replace(/[^0-9.]/g,''));
+  if (isNaN(n)) return v;
+  if (n >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return '$' + Math.round(n/1000) + 'k';
+  return '$' + n;
+}
+
+function badge(texto, tipo) {
+  return `<span class="badge badge-${tipo}">${texto}</span>`;
+}
+
+function etapaBadge(etapa) {
+  const map = {
+    'Prospecto':'gray','Contactado':'gray',
+    'Propuesta':'amber','Negociación':'green','Cerrado':'green'
+  };
+  return badge(etapa, map[etapa] || 'gray');
+}
+
+function estatusBadge(est) {
+  const map = { 'Al día':'green','Pendiente':'amber','Atención':'red' };
+  return badge(est, map[est] || 'gray');
+}
+
+// ─── Render Prospectos ───────────────────────────────────────
+function renderProspectos(rows) {
+  document.getElementById('cnt-p').textContent = rows.length;
+
+  let totalValor = 0, enPropuesta = 0, frios = 0;
+  let html = '';
+
+  rows.forEach(r => {
+    const dias  = diasDesde(r.ultimo_movimiento);
+    const frio  = dias >= 7;
+    if (frio) frios++;
+    if (r.etapa === 'Propuesta' || r.etapa === 'Negociación') enPropuesta++;
+    const v = parseFloat(String(r.valor || '0').replace(/[^0-9.]/g,''));
+    if (!isNaN(v)) totalValor += v;
+
+    const fechaHtml = frio
+      ? `<span class="date-alert">${diasTexto(dias)}</span>`
+      : `<span class="muted">${diasTexto(dias)}</span>`;
+
+    const alertaHtml = frio ? badge('Frío','red') : '';
+
+    html += `
+      <div class="table-row row-p ${frio ? 'alert' : ''}">
+        <div>
+          <div class="empresa-name">${r.empresa || '—'}</div>
+          <div class="empresa-sub">${r.notas ? r.notas.substring(0,40) : ''} ${r.valor ? '· ' + formatValor(r.valor) : ''}</div>
+        </div>
+        <div>${etapaBadge(r.etapa || 'Prospecto')}</div>
+        <div class="muted">${r.responsable || '—'}</div>
+        <div>${fechaHtml}</div>
+        <div>${alertaHtml}</div>
+      </div>`;
+  });
+
+  document.getElementById('rows-p').innerHTML = html || '<div class="state-msg">Sin prospectos registrados</div>';
+  document.getElementById('m-p-total').textContent    = rows.length;
+  document.getElementById('m-p-propuesta').textContent = enPropuesta;
+  document.getElementById('m-p-frios').textContent    = frios;
+  document.getElementById('m-p-valor').textContent    = formatValor(totalValor);
+}
+
+// ─── Render Clientes ─────────────────────────────────────────
+function renderClientes(rows) {
+  document.getElementById('cnt-c').textContent = rows.length;
+
+  let frios = 0, pendientesHoy = 0, totalValor = 0;
+  let html = '';
+
+  const hoyStr = new Date().toISOString().split('T')[0];
+
+  rows.forEach(r => {
+    const dias = diasDesde(r.ultimo_contacto);
+    const frio = dias >= 14;
+    if (frio) frios++;
+
+    const esHoy = r.fecha_accion === hoyStr;
+    if (esHoy) pendientesHoy++;
+
+    const v = parseFloat(String(r.valor || '0').replace(/[^0-9.]/g,''));
+    if (!isNaN(v)) totalValor += v;
+
+    // Calcular estatus automático si no viene del Sheet
+    let estatus = r.estatus || 'Al día';
+    if (frio) estatus = 'Atención';
+
+    const contactoHtml = frio
+      ? `<span class="date-alert">${diasTexto(dias)}</span>`
+      : `<span class="muted">${diasTexto(dias)}</span>`;
+
+    const accionHtml = r.proxima_accion
+      ? `<div style="font-size:12px">${r.proxima_accion}</div>
+         <div class="${esHoy ? 'date-warn' : 'muted'}">${esHoy ? '⚑ Hoy' : formatFecha(r.fecha_accion)}</div>`
+      : `<div class="date-alert" style="font-size:12px">Sin programar</div>`;
+
+    html += `
+      <div class="table-row row-c ${frio ? 'alert' : ''}">
+        <div>
+          <div class="empresa-name">${r.empresa || '—'}</div>
+          <div class="empresa-sub">Desde ${r.desde || '—'} · ${r.categoria || ''}</div>
+        </div>
+        <div class="muted">${r.responsable || '—'}</div>
+        <div>${contactoHtml}</div>
+        <div>${accionHtml}</div>
+        <div>${estatusBadge(estatus)}</div>
+      </div>`;
+  });
+
+  document.getElementById('rows-c').innerHTML = html || '<div class="state-msg">Sin clientes registrados</div>';
+  document.getElementById('m-c-total').textContent = rows.length;
+  document.getElementById('m-c-frios').textContent = frios;
+  document.getElementById('m-c-hoy').textContent   = pendientesHoy;
+  document.getElementById('m-c-valor').textContent = totalValor > 0 ? formatValor(totalValor) : '—';
+}
+
+// ─── Auto-refresh cada 60 segundos ──────────────────────────
+cargarTodo();
+setInterval(cargarTodo, 60000);
+</script>
+</body>
+</html>
