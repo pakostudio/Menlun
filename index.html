@@ -312,24 +312,23 @@ textarea { resize: vertical; min-height: 70px; }
   <div class="login-card">
     <div class="login-logo">M</div>
     <div class="login-title">Menlun CRM</div>
-    <div class="login-sub">Selecciona tu nombre e ingresa tu PIN</div>
+    <div class="login-sub">Selecciona tu nombre e ingresa la clave del equipo</div>
     <label>Nombre</label>
     <select id="login-user">
       <option value="">— Selecciona —</option>
-      <option value="José Carlos:JC:1111">José Carlos</option>
-      <option value="Ulises:UL:2222">Ulises</option>
-      <option value="Rocío:RO:3333">Rocío</option>
-      <option value="Jesús:JE:4444">Jesús</option>
-      <option value="Daniel:DA:5555">Daniel</option>
-      <option value="Ma. Teresa:MT:6666">Ma. Teresa</option>
-      <option value="Arturo:AR:7777">Arturo</option>
-      <option value="Pako:PK:8888">Pako</option>
+      <option value="José Carlos:JC">José Carlos</option>
+      <option value="Ulises:UL">Ulises</option>
+      <option value="Rocío:RO">Rocío</option>
+      <option value="Jesús:JE">Jesús</option>
+      <option value="Daniel:DA">Daniel</option>
+      <option value="Ma. Teresa:MT">Ma. Teresa</option>
+      <option value="Arturo:AR">Arturo</option>
+      <option value="Pako:PK">Pako</option>
     </select>
-    <label>PIN</label>
-    <input type="password" id="login-pin" placeholder="••••" maxlength="4">
-    <div id="login-error" style="color:var(--red);font-size:12px;margin-bottom:12px;display:none">PIN incorrecto</div>
+    <label>Clave de acceso</label>
+    <input type="password" id="login-pin" placeholder="••••••" autocomplete="off">
+    <div id="login-error" style="color:var(--red);font-size:12px;margin-bottom:12px;display:none">Clave incorrecta</div>
     <button class="btn" onclick="doLogin()">Entrar</button>
-    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:14px">PINs de prueba: José Carlos=1111 · Ulises=2222 · etc.</div>
   </div>
 </div>
 
@@ -537,6 +536,8 @@ textarea { resize: vertical; min-height: 70px; }
 <div class="modal-overlay" id="modal-nuevo-cliente">
   <div class="modal">
     <div class="modal-title">Nuevo cliente activo</div>
+
+    <!-- Datos generales -->
     <div class="g2">
       <div><label>Empresa *</label><input type="text" id="nc-empresa" placeholder="Nombre"></div>
       <div><label>Contacto *</label><input type="text" id="nc-contacto" placeholder="Nombre del contacto"></div>
@@ -549,15 +550,68 @@ textarea { resize: vertical; min-height: 70px; }
       <div><label>Cliente desde</label><input type="text" id="nc-desde" placeholder="2022"></div>
       <div><label>Tipo de servicio</label><input type="text" id="nc-servicio" placeholder="Ej: Limpieza CIP, membrana..."></div>
     </div>
+
+    <div class="divider"></div>
+
+    <!-- Ciclo comercial — el corazón del módulo -->
+    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">Ciclo comercial</div>
+
+    <div class="step-check">
+      <input type="checkbox" id="nc-cotizacion">
+      <div style="flex:1">
+        <label for="nc-cotizacion" style="margin:0;font-size:13px;font-weight:500;color:var(--text);text-transform:none;letter-spacing:0;cursor:pointer">1. Cotización enviada</label>
+        <input type="date" id="nc-cotizacion-fecha" style="width:100%;margin-top:6px;margin-bottom:0">
+      </div>
+    </div>
+
+    <div class="step-check">
+      <input type="checkbox" id="nc-odc">
+      <div style="flex:1">
+        <label for="nc-odc" style="margin:0;font-size:13px;font-weight:500;color:var(--text);text-transform:none;letter-spacing:0;cursor:pointer">2. ODC recibida</label>
+        <input type="date" id="nc-odc-fecha" style="width:100%;margin-top:6px;margin-bottom:0">
+      </div>
+    </div>
+
+    <div class="step-check">
+      <input type="checkbox" id="nc-factura">
+      <div style="flex:1">
+        <label for="nc-factura" style="margin:0;font-size:13px;font-weight:500;color:var(--text);text-transform:none;letter-spacing:0;cursor:pointer">3. Factura emitida</label>
+        <div class="g2" style="margin-top:6px;margin-bottom:0">
+          <input type="date" id="nc-factura-fecha" style="margin-bottom:0">
+          <input type="number" id="nc-factura-monto" placeholder="Monto $" style="margin-bottom:0">
+        </div>
+      </div>
+    </div>
+
+    <div class="step-check">
+      <input type="checkbox" id="nc-pago-fecha">
+      <div style="flex:1">
+        <label for="nc-pago-fecha" style="margin:0;font-size:13px;font-weight:500;color:var(--text);text-transform:none;letter-spacing:0;cursor:pointer">4. Fecha de pago programada</label>
+        <input type="date" id="nc-pago-fecha-val" style="width:100%;margin-top:6px;margin-bottom:0">
+      </div>
+    </div>
+
+    <div class="step-check" style="border-color:var(--accent);background:var(--accent-light)">
+      <input type="checkbox" id="nc-pago">
+      <div style="flex:1">
+        <label for="nc-pago" style="margin:0;font-size:13px;font-weight:500;color:var(--accent-muted);text-transform:none;letter-spacing:0;cursor:pointer">5. ✓ Pago recibido — cuenta saldada</label>
+        <input type="date" id="nc-pago-val" style="width:100%;margin-top:6px;margin-bottom:0">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Seguimiento operativo -->
+    <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">Seguimiento operativo</div>
     <div class="g2">
       <div><label>Próxima cita</label><input type="datetime-local" id="nc-cita"></div>
       <div><label>Próximo servicio</label><input type="text" id="nc-proximo-serv" placeholder="Descripción + fecha aprox."></div>
     </div>
     <div class="g2">
       <div><label>Capacitación pendiente</label><input type="text" id="nc-capacitacion" placeholder="BPM, manejo químicos..."></div>
-      <div><label>Fecha pago programada</label><input type="date" id="nc-fecha-pago"></div>
     </div>
     <div><label>Notas</label><textarea id="nc-notas" placeholder="Observaciones del cliente..."></textarea></div>
+
     <div class="modal-actions">
       <button class="btn btn-sm" onclick="guardarCliente()">Guardar cliente</button>
       <button class="btn btn-sm btn-ghost" onclick="closeModal('modal-nuevo-cliente')">Cancelar</button>
@@ -628,15 +682,17 @@ textarea { resize: vertical; min-height: 70px; }
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxACqAOQ4qjHH3UBaT6ekGN4iJ9TTl6cYSomXYLz-rLYMi1VtSS-s2qWuBSUK1I9Hsc/exec';
 
+const CLAVE = 'menlun2026'; // Clave única del equipo — cambiar aquí cuando se requiera
+
 const USERS = {
-  'José Carlos': { initials: 'JC', pin: '1111' },
-  'Ulises':      { initials: 'UL', pin: '2222' },
-  'Rocío':       { initials: 'RO', pin: '3333' },
-  'Jesús':       { initials: 'JE', pin: '4444' },
-  'Daniel':      { initials: 'DA', pin: '5555' },
-  'Ma. Teresa':  { initials: 'MT', pin: '6666' },
-  'Arturo':      { initials: 'AR', pin: '7777' },
-  'Pako':        { initials: 'PK', pin: '8888' },
+  'José Carlos': { initials: 'JC' },
+  'Ulises':      { initials: 'UL' },
+  'Rocío':       { initials: 'RO' },
+  'Jesús':       { initials: 'JE' },
+  'Daniel':      { initials: 'DA' },
+  'Ma. Teresa':  { initials: 'MT' },
+  'Arturo':      { initials: 'AR' },
+  'Pako':        { initials: 'PK' },
 };
 
 let currentUser = null;
@@ -683,10 +739,10 @@ function fmtValor(v) {
 
 function doLogin() {
   const sel = document.getElementById('login-user').value;
-  if (!sel) return;
-  const [name, initials, pin] = sel.split(':');
+  if (!sel) { alert('Selecciona tu nombre'); return; }
+  const [name, initials] = sel.split(':');
   const entered = document.getElementById('login-pin').value;
-  if (entered !== pin) {
+  if (entered !== CLAVE) {
     document.getElementById('login-error').style.display = 'block';
     return;
   }
@@ -907,18 +963,34 @@ function guardarCliente() {
     proxima_cita: document.getElementById('nc-cita').value,
     proximo_servicio: document.getElementById('nc-proximo-serv').value.trim(),
     capacitacion: document.getElementById('nc-capacitacion').value.trim(),
-    fecha_pago: document.getElementById('nc-fecha-pago').value,
     notas: document.getElementById('nc-notas').value.trim(),
     responsable: currentUser.name,
     ultimo_contacto: hoy(),
-    ciclo: { cotizacion: false, odc: false, factura: false, pago_fecha: false, pago: false },
+    ciclo: {
+      cotizacion: document.getElementById('nc-cotizacion').checked,
+      cotizacion_fecha: document.getElementById('nc-cotizacion-fecha').value,
+      odc: document.getElementById('nc-odc').checked,
+      odc_fecha: document.getElementById('nc-odc-fecha').value,
+      factura: document.getElementById('nc-factura').checked,
+      factura_fecha: document.getElementById('nc-factura-fecha').value,
+      factura_monto: document.getElementById('nc-factura-monto').value,
+      pago_fecha: document.getElementById('nc-pago-fecha').checked,
+      pago_fecha_val: document.getElementById('nc-pago-fecha-val').value,
+      pago: document.getElementById('nc-pago').checked,
+      pago_val: document.getElementById('nc-pago-val').value,
+    },
     seguimientos: []
   };
 
   clientes.push(cliente);
   save();
   closeModal('modal-nuevo-cliente');
-  ['nc-empresa','nc-contacto','nc-telefono','nc-email','nc-desde','nc-servicio','nc-cita','nc-proximo-serv','nc-capacitacion','nc-fecha-pago','nc-notas'].forEach(id => document.getElementById(id).value = '');
+  // Limpiar campos
+  ['nc-empresa','nc-contacto','nc-telefono','nc-email','nc-desde','nc-servicio',
+   'nc-cita','nc-proximo-serv','nc-capacitacion','nc-notas',
+   'nc-cotizacion-fecha','nc-odc-fecha','nc-factura-fecha','nc-factura-monto',
+   'nc-pago-fecha-val','nc-pago-val'].forEach(id => document.getElementById(id).value = '');
+  ['nc-cotizacion','nc-odc','nc-factura','nc-pago-fecha','nc-pago'].forEach(id => document.getElementById(id).checked = false);
   renderClientes();
 }
 
