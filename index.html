@@ -626,16 +626,52 @@ async function cargarDatos(){
     const [rawLeads, rawClientes] = await Promise.all([
       apiGet('prospectos'), apiGet('clientes')
     ]);
-    // Parsear campos JSON
+
+    // Parsear leads — compatible con headers v1 y v2
     leads = rawLeads.map(l => ({
-      ...l,
+      id: l.id||'',
+      empresa: l.empresa||'',
+      contacto: l.contacto||'',
+      telefono: l.telefono||'',
+      email: l.email||'',
+      web: l.web||'',
+      etapa: l.etapa||'Prospecto',
+      temperatura: l.temperatura||'~ Tibio',
+      fuente: l.fuente||'',
+      valor: l.valor||'0',
+      responsable: l.responsable||'',
+      ultimo_movimiento: l.ultimo_movimiento||hoy(),
+      notas: l.notas||'',
       seguimientos: parseJSON(l.seguimientos, []),
     }));
+
+    // Parsear clientes — compatible con headers v1 y v2
     clientes = rawClientes.map(c => ({
-      ...c,
-      ciclo: parseJSON(c.ciclo, {}),
+      id: c.id||'',
+      empresa: c.empresa||'',
+      razon: c.razon||'',
+      rfc: c.rfc||'',
+      web: c.web||'',
+      contacto: c.contacto||'',
+      cargo: c.cargo||'',
+      telefono: c.telefono||'',
+      whatsapp: c.whatsapp||'',
+      conmutador: c.conmutador||'',
+      ext: c.ext||'',
+      email: c.email||'',
+      desde: c.desde||'',
+      servicio: c.servicio||c.categoria||'',
+      proxima_cita: c.proxima_cita||'',
+      proximo_servicio: c.proximo_servicio||c.proxima_accion||'',
+      capacitacion: c.capacitacion||'',
+      notas: c.notas||'',
+      responsable: c.responsable||'',
+      ultimo_contacto: c.ultimo_contacto||hoy(),
+      // ciclo: intentar parsear, si no existe construir desde campos v1
+      ciclo: parseJSON(c.ciclo, null) || construirCicloV1(c),
       seguimientos: parseJSON(c.seguimientos, []),
     }));
+
     document.getElementById('rep-update').textContent = 'Actualizado: '+new Date().toLocaleTimeString('es-MX');
     setSyncStatus('✓ Sincronizado');
   } catch(e){
@@ -644,6 +680,18 @@ async function cargarDatos(){
   }
   setLoading(false);
   renderAll();
+}
+
+// Compatibilidad con datos v1 que no tienen campo ciclo
+function construirCicloV1(c){
+  return {
+    cotizacion: false, cotizacion_fecha: '',
+    odc: false, odc_fecha: '',
+    factura: false, factura_fecha: '', factura_monto: '',
+    pago_fecha: false, pago_fecha_val: c.fecha_pago||c.fecha_accion||'',
+    cxc: false,
+    pago: false, pago_val: ''
+  };
 }
 
 function parseJSON(val, def){
