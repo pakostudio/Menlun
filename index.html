@@ -168,6 +168,11 @@ textarea{resize:vertical;min-height:70px}
 .prog{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:3px}
 .prog-f{height:100%;border-radius:3px}
 .tag-seccion{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 10px}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:#1B2A4A;color:#fff;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:500;z-index:500;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,0.18)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-icon{font-size:15px}
 </style>
 </head>
 <body>
@@ -176,6 +181,12 @@ textarea{resize:vertical;min-height:70px}
 <div class="loading-overlay" id="loading">
   <div class="spinner"></div>
   <div style="font-size:13px;color:var(--muted)" id="loading-msg">Cargando...</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✓</span>
+  <span id="toast-msg">Guardado correctamente</span>
 </div>
 
 <!-- LOGIN -->
@@ -335,7 +346,8 @@ textarea{resize:vertical;min-height:70px}
       <div><label>Etapa</label>
         <select id="nl-etapa">
           <option>Prospecto</option><option>Contactado</option>
-          <option>Propuesta</option><option>Negociación</option><option>Cerrado</option>
+          <option>Propuesta</option><option>Negociación</option>
+          <option>Cerrado ganado</option><option>Cerrado perdido</option>
         </select>
       </div>
       <div><label>Temperatura</label>
@@ -588,6 +600,16 @@ function fmtFecha(f){ if(!f)return '—'; return new Date(f).toLocaleDateString(
 function fmtValor(v){ if(!v||isNaN(v))return '$0'; const n=parseFloat(v); if(n>=1000000)return '$'+(n/1000000).toFixed(1)+'M'; if(n>=1000)return '$'+Math.round(n/1000)+'k'; return '$'+n; }
 function canalIcon(c){ return {'Llamada':'📞','WhatsApp':'💬','Email':'✉️','Visita':'🤝','Video':'📹'}[c]||'📌'; }
 
+let _toastTimer=null;
+function showToast(msg='Guardado correctamente', icon='✓'){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  t.querySelector('.toast-icon').textContent=icon;
+  t.classList.add('show');
+  if(_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
 function setLoading(show, msg='Sincronizando...'){
   document.getElementById('loading').classList.toggle('show', show);
   document.getElementById('loading-msg').textContent = msg;
@@ -829,6 +851,7 @@ async function guardarLead(){
     if(existId){ const i=leads.findIndex(l=>l.id===existId); if(i>=0) leads[i]=lead; else leads.push(lead); }
     else leads.push(lead);
     setSyncStatus('✓ Guardado');
+    showToast('Lead guardado correctamente');
   } else { setSyncStatus('⚠️ Error al guardar'); alert('Error al guardar: '+r.error); }
   setLoading(false);
   renderAll();
@@ -847,7 +870,7 @@ function renderLeads(filtro=''){
   const ml = myLeads().filter(l=>!filtro||l.empresa.toLowerCase().includes(filtro.toLowerCase())||l.contacto?.toLowerCase().includes(filtro.toLowerCase()));
   const list = document.getElementById('leads-list');
   let tv=0,ep=0,fr=0;
-  ml.forEach(l=>{ const v=parseFloat(l.valor||0); if(!isNaN(v))tv+=v; if(l.etapa==='Propuesta'||l.etapa==='Negociación')ep++; if(diasDesde(l.ultimo_movimiento)>=7)fr++; });
+  ml.forEach(l=>{ const v=parseFloat(l.valor||0); if(!isNaN(v)&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido')tv+=v; if(l.etapa==='Propuesta'||l.etapa==='Negociación')ep++; if(diasDesde(l.ultimo_movimiento)>=7&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido')fr++; });
   document.getElementById('kl-total').textContent=ml.length;
   document.getElementById('kl-propuesta').textContent=ep;
   document.getElementById('kl-frios').textContent=fr;
@@ -855,9 +878,11 @@ function renderLeads(filtro=''){
 
   if(!ml.length){ list.innerHTML=`<div class="empty-state">${filtro?'Sin resultados':'Sin leads registrados. Agrega tu primer prospecto.'}</div>`; return; }
 
-  const etapaCls={'Prospecto':'badge-gray','Contactado':'badge-blue','Propuesta':'badge-amber','Negociación':'badge-amber','Cerrado':'badge-green'};
+  const etapaCls={'Prospecto':'badge-gray','Contactado':'badge-blue','Propuesta':'badge-amber','Negociación':'badge-amber','Cerrado ganado':'badge-green','Cerrado perdido':'badge-red'};
   list.innerHTML = ml.map(l=>{
+    // Temperatura automática: si +7 días sin contacto → ❄️ Frío
     const dias=diasDesde(l.ultimo_movimiento), frio=dias>=7;
+    if(frio && l.temperatura !== '❄️ Frío') l.temperatura = '❄️ Frío';
     const segs=(l.seguimientos||[]).slice(-3).reverse();
     return `<div class="card" ${frio?'style="border-color:#F09595"':''}>
       <div class="card-head" onclick="toggleCard('lead-${l.id}')">
@@ -887,7 +912,7 @@ function renderLeads(filtro=''){
           <div class="muted">${fmtFecha(s.fecha)}${s.accion?' · Próximo: '+s.accion:''}</div></div>
         </div>`).join('')}</div>`:''}
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-          <button class="btn btn-sm btn-outline" onclick="abrirSeg('${l.id}','lead','${l.empresa}')">+ Registrar contacto</button>
+          <button class="btn btn-sm btn-outline" onclick="abrirSeg('${l.id}','lead','${l.empresa}')">+ Registrar seguimiento</button>
           <button class="btn btn-sm btn-ghost" onclick="abrirEditarLead('${l.id}')">✏️ Editar</button>
           <button class="btn btn-sm btn-ghost" style="color:var(--red)" onclick="eliminarLead('${l.id}')">Eliminar</button>
         </div>
@@ -938,6 +963,7 @@ async function guardarSeguimiento(){
     await apiPost('upsert','clientes',c);
   }
   setSyncStatus('✓ Guardado');
+  showToast('Seguimiento registrado');
   setLoading(false); renderAll();
 }
 
@@ -1040,6 +1066,7 @@ async function guardarCliente(){
     if(existId){ const i=clientes.findIndex(c=>c.id===existId); if(i>=0)clientes[i]=cliente; else clientes.push(cliente); }
     else clientes.push(cliente);
     setSyncStatus('✓ Guardado');
+    showToast('Cliente guardado correctamente');
   } else { setSyncStatus('⚠️ Error'); alert('Error: '+r.error); }
   setLoading(false); renderAll();
 }
@@ -1095,6 +1122,7 @@ async function guardarCiclo(){
   closeModal('modal-ciclo');
   await apiPost('upsert','clientes',c);
   setSyncStatus('✓ Guardado');
+  showToast('Ciclo actualizado');
   setLoading(false); renderAll();
 }
 
@@ -1191,7 +1219,7 @@ function renderClientes(filtro=''){
         <!-- Acciones -->
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
           <button class="btn btn-sm" onclick="abrirCiclo('${c.id}','${c.empresa}')">🔄 Actualizar ciclo</button>
-          <button class="btn btn-sm btn-outline" onclick="abrirSeg('${c.id}','cliente','${c.empresa}')">+ Registrar contacto</button>
+          <button class="btn btn-sm btn-outline" onclick="abrirSeg('${c.id}','cliente','${c.empresa}')">+ Registrar seguimiento</button>
           <button class="btn btn-sm btn-ghost" onclick="abrirEditarCliente('${c.id}')">✏️ Editar</button>
           <button class="btn btn-sm btn-ghost" style="color:var(--red)" onclick="eliminarCliente('${c.id}')">Eliminar</button>
         </div>
@@ -1204,7 +1232,7 @@ function renderClientes(filtro=''){
 // DASHBOARD PERSONAL
 // ══════════════════════════════════════════
 function renderDashboard(){
-  const ml=myLeads().filter(l=>l.etapa!=='Cerrado');
+  const ml=myLeads().filter(l=>l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido');
   const mc=myClientes();
   let tv=0,ep=0,fr=0,odcP=0,cxcC=0,cobrado=0;
   ml.forEach(l=>{ const v=parseFloat(l.valor||0);if(!isNaN(v))tv+=v; if(l.etapa==='Propuesta'||l.etapa==='Negociación')ep++; if(diasDesde(l.ultimo_movimiento)>=7)fr++; });
@@ -1224,10 +1252,25 @@ function renderDashboard(){
   mc.forEach(c=>{ const ciclo=c.ciclo||{}; if(ciclo.cotizacion&&!ciclo.odc) alertas.push({txt:c.empresa,sub:'ODC pendiente de recibir',tipo:'amber'}); if(ciclo.cxc&&!ciclo.pago) alertas.push({txt:c.empresa,sub:'Cuenta por cobrar — esperando pago',tipo:'amber'}); if(ciclo.pago_fecha_val&&diasDesde(ciclo.pago_fecha_val)>=-3&&!ciclo.pago) alertas.push({txt:c.empresa,sub:'Pago vence pronto: '+fmtFecha(ciclo.pago_fecha_val),tipo:'red'}); });
   document.getElementById('dash-alertas').innerHTML=alertas.length?alertas.map(a=>`<div class="alert-item"><div class="alert-dot" style="background:${a.tipo==='red'?'var(--red)':'#EF9F27'}"></div><div><div class="fw500">${a.txt}</div><div class="muted">${a.sub}</div></div></div>`).join(''):'<div class="muted" style="text-align:center;padding:12px">Sin alertas — todo en orden ✓</div>';
 
-  // Próximas acciones
+  // Próximas acciones — leads Y clientes con fecha de acción futura
   const proximas=[];
-  ml.forEach(l=>{ const segs=l.seguimientos||[]; const ult=segs[segs.length-1]; if(ult?.accion&&ult?.fecha) proximas.push({txt:l.empresa,accion:ult.accion,fecha:ult.fecha}); });
-  document.getElementById('dash-proximas').innerHTML=proximas.length?proximas.sort((a,b)=>a.fecha>b.fecha?1:-1).slice(0,5).map(p=>`<div class="alert-item"><div style="font-size:16px">📅</div><div><div class="fw500">${p.txt}</div><div class="muted">${p.accion} · ${fmtFecha(p.fecha)}</div></div></div>`).join(''):'<div class="muted" style="text-align:center;padding:12px">Sin acciones pendientes</div>';
+  ml.forEach(l=>{
+    const segs=l.seguimientos||[];
+    // Recorrer todos los seguimientos para encontrar acciones con fecha futura
+    segs.forEach(s=>{ if(s.accion&&s.fecha&&diasDesde(s.fecha)<0) proximas.push({txt:l.empresa,accion:s.accion,fecha:s.fecha,tipo:'lead'}); });
+    // Si el más reciente tiene acción pendiente (fecha vacía o futura), incluir
+    const ult=segs[segs.length-1];
+    if(ult&&ult.accion&&ult.fecha&&diasDesde(ult.fecha)<=0&&!proximas.find(p=>p.txt===l.empresa&&p.fecha===ult.fecha)){
+      proximas.push({txt:l.empresa,accion:ult.accion,fecha:ult.fecha,tipo:'lead'});
+    }
+  });
+  mc.forEach(c=>{
+    const segs=c.seguimientos||[];
+    const ult=segs[segs.length-1];
+    if(ult&&ult.accion&&ult.fecha&&diasDesde(ult.fecha)<=0) proximas.push({txt:c.empresa,accion:ult.accion,fecha:ult.fecha,tipo:'cliente'});
+    if(c.proxima_cita&&diasDesde(c.proxima_cita.split('T')[0])<=0) proximas.push({txt:c.empresa,accion:'Cita programada',fecha:c.proxima_cita.split('T')[0],tipo:'cliente'});
+  });
+  document.getElementById('dash-proximas').innerHTML=proximas.length?proximas.sort((a,b)=>a.fecha>b.fecha?1:-1).slice(0,6).map(p=>`<div class="alert-item"><div style="font-size:16px">${p.tipo==='lead'?'🎯':'🏢'}</div><div><div class="fw500">${p.txt}</div><div class="muted">${p.accion} · ${fmtFecha(p.fecha)}</div></div></div>`).join(''):'<div class="muted" style="text-align:center;padding:12px">Sin acciones pendientes</div>';
 }
 
 // ══════════════════════════════════════════
@@ -1236,7 +1279,7 @@ function renderDashboard(){
 function renderReportes(){
   document.getElementById('rep-update').textContent='Actualizado: '+new Date().toLocaleTimeString('es-MX');
   let pipeline=0,totalLeads=0,frios=0,cxcTotal=0;
-  leads.forEach(l=>{ if(l.etapa!=='Cerrado'){totalLeads++;const v=parseFloat(l.valor||0);if(!isNaN(v))pipeline+=v;if(diasDesde(l.ultimo_movimiento)>=7)frios++;} });
+  leads.forEach(l=>{ if(l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido'){totalLeads++;const v=parseFloat(l.valor||0);if(!isNaN(v))pipeline+=v;if(diasDesde(l.ultimo_movimiento)>=7)frios++;} });
   clientes.forEach(c=>{ const ciclo=c.ciclo||{};if(ciclo.cxc&&!ciclo.pago)cxcTotal++; });
   document.getElementById('rk-pipeline').textContent=fmtValor(pipeline);
   document.getElementById('rk-leads').textContent=totalLeads;
@@ -1269,7 +1312,7 @@ function renderReportes(){
 
   // Equipo
   document.getElementById('rep-equipo').innerHTML=Object.keys(USERS).map(name=>{
-    const uL=leads.filter(l=>l.responsable===name&&l.etapa!=='Cerrado');
+    const uL=leads.filter(l=>l.responsable===name&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido');
     const lastMov=uL.reduce((acc,l)=>(!acc||l.ultimo_movimiento>acc)?l.ultimo_movimiento:acc,null);
     const dias=diasDesde(lastMov);
     let [bc,bt]=dias<=3?['badge-green','Al día']:dias<=7?['badge-amber','Pendiente']:['badge-red','Atención'];
