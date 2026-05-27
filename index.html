@@ -296,18 +296,43 @@ textarea{resize:vertical;min-height:70px}
 
     <!-- ══ REPORTES ══ -->
     <div id="panel-reportes" class="panel">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Todo el equipo · Solo lectura · <span id="rep-update"></span> <button class="btn btn-sm btn-ghost" onclick="cargarDatos()" style="margin-left:8px">↻ Actualizar</button></div>
+      <!-- Barra superior -->
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+        <div style="font-size:12px;color:var(--muted)">Todo el equipo · Solo lectura · <span id="rep-update"></span> <button class="btn btn-sm btn-ghost" onclick="cargarDatos()" style="margin-left:8px">↻ Actualizar</button></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="font-size:11px;margin:0">📅 Período:</label>
+          <select id="rep-mes-select" onchange="renderReportes()" style="margin-bottom:0;width:auto;padding:7px 12px;font-size:12px"></select>
+          <button class="btn btn-sm" onclick="exportarExcel()" style="background:#0F6E56;display:flex;align-items:center;gap:5px">⬇ Exportar Excel</button>
+        </div>
+      </div>
+
+      <!-- KPIs globales (siempre) -->
       <div class="g4 mb16">
         <div class="kpi" style="border-color:#B3DFF5"><div class="kpi-n text-green" id="rk-pipeline">$0</div><div class="kpi-l">Pipeline total</div></div>
         <div class="kpi"><div class="kpi-n" id="rk-leads">0</div><div class="kpi-l">Leads activos</div></div>
         <div class="kpi" style="border-color:#F09595"><div class="kpi-n text-red" id="rk-frios">0</div><div class="kpi-l">Leads fríos</div></div>
         <div class="kpi" style="border-color:#FAC775"><div class="kpi-n text-amber" id="rk-cxc">0</div><div class="kpi-l">Cuentas por cobrar</div></div>
       </div>
-      <!-- Ciclo comercial global -->
+
+      <!-- KPIs mensuales -->
       <div class="card mb16" style="padding:16px">
-        <div class="section-title">Ciclo comercial — todos los clientes</div>
+        <div class="section-title" id="rep-mes-titulo">Actividad del mes</div>
+        <div class="g4" style="grid-template-columns:repeat(5,1fr);gap:10px" id="rep-kpis-mes">
+          <div class="kpi" style="padding:12px"><div class="kpi-n" id="mk-cotiz">0</div><div class="kpi-l">Cotizaciones</div></div>
+          <div class="kpi" style="padding:12px"><div class="kpi-n" id="mk-odc">0</div><div class="kpi-l">ODCs recibidas</div></div>
+          <div class="kpi" style="padding:12px"><div class="kpi-n" id="mk-fact">0</div><div class="kpi-l">Facturas emitidas</div></div>
+          <div class="kpi" style="padding:12px;border-color:#B3DFF5"><div class="kpi-n text-green" id="mk-monto">$0</div><div class="kpi-l">Monto facturado</div></div>
+          <div class="kpi" style="padding:12px;border-color:#C3E6CB"><div class="kpi-n" style="color:#0F6E56" id="mk-pagos">$0</div><div class="kpi-l">Cobrado en el mes</div></div>
+        </div>
+      </div>
+
+      <!-- Ciclo comercial global filtrado por mes -->
+      <div class="card mb16" style="padding:16px">
+        <div class="section-title" id="rep-ciclo-titulo">Ciclo comercial — todos los clientes</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">🔵 Pasos completados en el mes seleccionado &nbsp;·&nbsp; ⚫ Completados en otro momento &nbsp;·&nbsp; ○ Pendiente</div>
         <div id="rep-ciclo"></div>
       </div>
+
       <!-- Equipo -->
       <div class="card mb16">
         <div class="rep-row rep-head" style="grid-template-columns:28px 1fr 60px 90px 70px">
@@ -1140,11 +1165,12 @@ function cicloEstatus(ciclo){
 function renderClientes(filtro=''){
   const mc=myClientes().filter(c=>!filtro||c.empresa.toLowerCase().includes(filtro.toLowerCase())||c.contacto?.toLowerCase().includes(filtro.toLowerCase()));
   let odcP=0,cxcC=0,cobrado=0;
+  const hoyRc=new Date(); const mesRc=hoyRc.getMonth(); const añoRc=hoyRc.getFullYear();
   mc.forEach(c=>{
     const ciclo=c.ciclo||{};
     if(ciclo.cotizacion&&!ciclo.odc) odcP++;
     if(ciclo.cxc&&!ciclo.pago) cxcC++;
-    if(ciclo.pago&&ciclo.factura_monto) cobrado+=parseFloat(ciclo.factura_monto||0);
+    if(ciclo.pago&&ciclo.factura_monto&&fechaEnMes(ciclo.pago_val,añoRc,mesRc)) cobrado+=parseFloat(ciclo.factura_monto||0);
   });
   document.getElementById('kc-total').textContent=mc.length;
   document.getElementById('kc-odc').textContent=odcP;
@@ -1236,7 +1262,8 @@ function renderDashboard(){
   const mc=myClientes();
   let tv=0,ep=0,fr=0,odcP=0,cxcC=0,cobrado=0;
   ml.forEach(l=>{ const v=parseFloat(l.valor||0);if(!isNaN(v))tv+=v; if(l.etapa==='Propuesta'||l.etapa==='Negociación')ep++; if(diasDesde(l.ultimo_movimiento)>=7)fr++; });
-  mc.forEach(c=>{ const ciclo=c.ciclo||{}; if(ciclo.cotizacion&&!ciclo.odc)odcP++; if(ciclo.cxc&&!ciclo.pago)cxcC++; if(ciclo.pago&&ciclo.factura_monto)cobrado+=parseFloat(ciclo.factura_monto||0); });
+  const hoyDk=new Date(); const mesDk=hoyDk.getMonth(); const añoDk=hoyDk.getFullYear();
+  mc.forEach(c=>{ const ciclo=c.ciclo||{}; if(ciclo.cotizacion&&!ciclo.odc)odcP++; if(ciclo.cxc&&!ciclo.pago)cxcC++; if(ciclo.pago&&ciclo.factura_monto&&fechaEnMes(ciclo.pago_val,añoDk,mesDk))cobrado+=parseFloat(ciclo.factura_monto||0); });
   document.getElementById('dk-leads').textContent=ml.length;
   document.getElementById('dk-propuesta').textContent=ep;
   document.getElementById('dk-frios').textContent=fr;
@@ -1274,10 +1301,68 @@ function renderDashboard(){
 }
 
 // ══════════════════════════════════════════
+// UTILIDADES DE MES
+// ══════════════════════════════════════════
+function mesKey(y, m){ return `${y}-${String(m+1).padStart(2,'0')}`; }
+function mesLabel(y, m){
+  const nombres=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  return `${nombres[m]} ${y}`;
+}
+function fechaEnMes(fechaStr, y, m){
+  if(!fechaStr) return false;
+  const d = new Date(fechaStr);
+  if(isNaN(d)) return false;
+  return d.getFullYear()===y && d.getMonth()===m;
+}
+
+// Genera el desplegable desde el mes más antiguo registrado hasta hoy
+function poblarSelectMes(){
+  const sel = document.getElementById('rep-mes-select');
+  const hoyD = new Date();
+  const mesHoy = hoyD.getMonth();
+  const añoHoy = hoyD.getFullYear();
+
+  // Recopilar todas las fechas del ciclo para encontrar el más antiguo
+  const todasFechas = [];
+  clientes.forEach(c=>{
+    const ciclo = c.ciclo||{};
+    ['cotizacion_fecha','odc_fecha','factura_fecha','pago_fecha_val','pago_val'].forEach(k=>{
+      if(ciclo[k]){ const d=new Date(ciclo[k]); if(!isNaN(d)) todasFechas.push(d); }
+    });
+  });
+
+  let añoMin = añoHoy, mesMin = mesHoy;
+  if(todasFechas.length){
+    const oldest = new Date(Math.min(...todasFechas.map(d=>d.getTime())));
+    añoMin = oldest.getFullYear();
+    mesMin = oldest.getMonth();
+  }
+
+  // Construir opciones de más reciente a más antiguo
+  const opciones = [];
+  let y = añoHoy, m = mesHoy;
+  while(y > añoMin || (y === añoMin && m >= mesMin)){
+    opciones.push({ key: mesKey(y,m), label: mesLabel(y,m), y, m });
+    m--;
+    if(m < 0){ m = 11; y--; }
+    if(opciones.length > 36) break; // máximo 3 años de historia
+  }
+
+  const valActual = sel.value;
+  sel.innerHTML = opciones.map(o=>`<option value="${o.key}" data-y="${o.y}" data-m="${o.m}">${o.label}</option>`).join('');
+  // Restaurar selección si existe, si no default al más reciente
+  if(valActual && sel.querySelector(`option[value="${valActual}"]`)){
+    sel.value = valActual;
+  }
+}
+
+// ══════════════════════════════════════════
 // REPORTES
 // ══════════════════════════════════════════
 function renderReportes(){
   document.getElementById('rep-update').textContent='Actualizado: '+new Date().toLocaleTimeString('es-MX');
+
+  // KPIs globales (siempre, sin filtro de mes)
   let pipeline=0,totalLeads=0,frios=0,cxcTotal=0;
   leads.forEach(l=>{ if(l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido'){totalLeads++;const v=parseFloat(l.valor||0);if(!isNaN(v))pipeline+=v;if(diasDesde(l.ultimo_movimiento)>=7)frios++;} });
   clientes.forEach(c=>{ const ciclo=c.ciclo||{};if(ciclo.cxc&&!ciclo.pago)cxcTotal++; });
@@ -1286,31 +1371,84 @@ function renderReportes(){
   document.getElementById('rk-frios').textContent=frios;
   document.getElementById('rk-cxc').textContent=cxcTotal;
 
-  // Ciclo global
+  // Poblar y leer el selector de mes
+  poblarSelectMes();
+  const sel = document.getElementById('rep-mes-select');
+  const selOpt = sel.options[sel.selectedIndex];
+  const filtroY = parseInt(selOpt?.dataset.y ?? new Date().getFullYear());
+  const filtroM = parseInt(selOpt?.dataset.m ?? new Date().getMonth());
+  const filtroLabel = selOpt?.text ?? mesLabel(filtroY, filtroM);
+
+  // ── KPIs mensuales ──
+  let mkCotiz=0, mkOdc=0, mkFact=0, mkMonto=0, mkPagos=0;
+  clientes.forEach(c=>{
+    const ciclo=c.ciclo||{};
+    if(fechaEnMes(ciclo.cotizacion_fecha, filtroY, filtroM)) mkCotiz++;
+    if(fechaEnMes(ciclo.odc_fecha, filtroY, filtroM)) mkOdc++;
+    if(fechaEnMes(ciclo.factura_fecha, filtroY, filtroM)){ mkFact++; mkMonto+=parseFloat(ciclo.factura_monto||0)||0; }
+    if(fechaEnMes(ciclo.pago_val, filtroY, filtroM)) mkPagos+=parseFloat(ciclo.factura_monto||0)||0;
+  });
+  document.getElementById('rep-mes-titulo').textContent=`Actividad — ${filtroLabel}`;
+  document.getElementById('rep-ciclo-titulo').textContent=`Ciclo comercial — ${filtroLabel}`;
+  document.getElementById('mk-cotiz').textContent=mkCotiz;
+  document.getElementById('mk-odc').textContent=mkOdc;
+  document.getElementById('mk-fact').textContent=mkFact;
+  document.getElementById('mk-monto').textContent=fmtValor(mkMonto);
+  document.getElementById('mk-pagos').textContent=fmtValor(mkPagos);
+
+  // ── Ciclo global filtrado por mes ──
   const repCiclo=document.getElementById('rep-ciclo');
   if(!clientes.length){ repCiclo.innerHTML='<div class="empty-state">Sin clientes registrados aún</div>'; }
   else {
-    const steps=[{key:'cotizacion',label:'Cotiz.'},{key:'odc',label:'ODC'},{key:'factura',label:'Factura'},{key:'pago_fecha',label:'Fecha\npago'},{key:'cxc',label:'Cta x\ncobrar'},{key:'pago',label:'Pagado\n✓'}];
-    repCiclo.innerHTML=clientes.map(c=>{
+    // Pasos con su fecha asociada en el ciclo
+    const steps=[
+      {key:'cotizacion', fechaKey:'cotizacion_fecha', label:'Cotiz.'},
+      {key:'odc',        fechaKey:'odc_fecha',        label:'ODC'},
+      {key:'factura',    fechaKey:'factura_fecha',    label:'Factura'},
+      {key:'pago_fecha', fechaKey:'pago_fecha_val',   label:'Fecha\npago'},
+      {key:'cxc',        fechaKey:null,               label:'Cta x\ncobrar'},
+      {key:'pago',       fechaKey:'pago_val',         label:'Pagado\n✓'},
+    ];
+
+    // Solo clientes que tuvieron algún evento en el mes seleccionado
+    const clientesMes = clientes.filter(c=>{
       const ciclo=c.ciclo||{};
-      const [bc,bt]=cicloEstatus(ciclo);
-      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
-        <div style="min-width:150px"><div class="fw500" style="font-size:12px">${c.empresa}</div><div class="muted">${c.responsable}</div></div>
-        <div style="display:flex;align-items:center;gap:2px;flex:1">
-          ${steps.map((s,i)=>`<div style="display:flex;align-items:center;gap:2px;flex:1">
-            <div style="text-align:center;flex:1">
-              <div style="width:26px;height:26px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:10px;border:1.5px solid ${ciclo[s.key]?'var(--accent)':'var(--border)'};background:${ciclo[s.key]?'var(--accent)':'var(--surface2)'};color:${ciclo[s.key]?'#fff':'var(--muted)'}">${ciclo[s.key]?'✓':(i+1)}</div>
-              <div style="font-size:9px;color:var(--muted);margin-top:2px;text-align:center;white-space:pre">${s.label}</div>
-            </div>
-            ${i<steps.length-1?`<div style="height:1.5px;flex:1;background:${ciclo[s.key]?'var(--accent)':'var(--border)'}"></div>`:''}
-          </div>`).join('')}
-        </div>
-        <div style="min-width:90px;text-align:right"><span class="badge ${bc}">${bt}</span></div>
-      </div>`;
-    }).join('')+'<div style="height:4px"></div>';
+      return steps.some(s=> s.fechaKey && fechaEnMes(ciclo[s.fechaKey], filtroY, filtroM));
+    });
+
+    if(!clientesMes.length){
+      repCiclo.innerHTML=`<div class="empty-state">Sin actividad registrada en ${filtroLabel}</div>`;
+    } else {
+      repCiclo.innerHTML=clientesMes.map(c=>{
+        const ciclo=c.ciclo||{};
+        const [bc,bt]=cicloEstatus(ciclo);
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="min-width:150px"><div class="fw500" style="font-size:12px">${c.empresa}</div><div class="muted">${c.responsable}</div></div>
+          <div style="display:flex;align-items:center;gap:2px;flex:1">
+            ${steps.map((s,i)=>{
+              const enMes = s.fechaKey && fechaEnMes(ciclo[s.fechaKey], filtroY, filtroM);
+              const hecho = !!ciclo[s.key];
+              // enMes = azul brillante | hecho (otro mes) = navy | pendiente = gris
+              const bg = enMes ? '#00AEEF' : hecho ? 'var(--accent)' : 'var(--surface2)';
+              const border = enMes ? '#00AEEF' : hecho ? 'var(--accent)' : 'var(--border)';
+              const color = (enMes||hecho) ? '#fff' : 'var(--muted)';
+              const lineBg = hecho ? 'var(--accent)' : 'var(--border)';
+              return `<div style="display:flex;align-items:center;gap:2px;flex:1">
+                <div style="text-align:center;flex:1">
+                  <div style="width:26px;height:26px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:10px;border:1.5px solid ${border};background:${bg};color:${color}${enMes?';box-shadow:0 0 0 2px #B3DFF5':''}">${hecho?'✓':(i+1)}</div>
+                  <div style="font-size:9px;color:var(--muted);margin-top:2px;text-align:center;white-space:pre">${s.label}</div>
+                </div>
+                ${i<steps.length-1?`<div style="height:1.5px;flex:1;background:${lineBg}"></div>`:''}
+              </div>`;
+            }).join('')}
+          </div>
+          <div style="min-width:90px;text-align:right"><span class="badge ${bc}">${bt}</span></div>
+        </div>`;
+      }).join('')+'<div style="height:4px"></div>';
+    }
   }
 
-  // Equipo
+  // ── Equipo ──
   document.getElementById('rep-equipo').innerHTML=Object.keys(USERS).map(name=>{
     const uL=leads.filter(l=>l.responsable===name&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido');
     const lastMov=uL.reduce((acc,l)=>(!acc||l.ultimo_movimiento>acc)?l.ultimo_movimiento:acc,null);
@@ -1328,11 +1466,87 @@ function renderReportes(){
     </div>`;
   }).join('');
 
-  // Alertas globales
+  // ── Alertas globales ──
   const alertas=[];
   leads.forEach(l=>{ if(l.etapa!=='Cerrado'&&diasDesde(l.ultimo_movimiento)>=7) alertas.push({txt:`${l.empresa} — ${l.responsable}`,sub:`Lead sin contacto ${diasDesde(l.ultimo_movimiento)} días`,tipo:'red'}); });
   clientes.forEach(c=>{ const ciclo=c.ciclo||{}; if(ciclo.cxc&&!ciclo.pago) alertas.push({txt:`${c.empresa} — ${c.responsable}`,sub:'Cuenta por cobrar pendiente',tipo:'amber'}); if(ciclo.pago_fecha_val&&diasDesde(ciclo.pago_fecha_val)>=-3&&!ciclo.pago) alertas.push({txt:`${c.empresa} — ${c.responsable}`,sub:'Pago vence pronto: '+fmtFecha(ciclo.pago_fecha_val),tipo:'red'}); });
   document.getElementById('rep-alertas').innerHTML=alertas.length?alertas.map(a=>`<div class="alert-item"><div class="alert-dot" style="background:${a.tipo==='red'?'var(--red)':'#EF9F27'}"></div><div><div class="fw500">${a.txt}</div><div class="muted">${a.sub}</div></div></div>`).join(''):'<div class="muted" style="text-align:center;padding:16px">Sin alertas activas ✓</div>';
+}
+
+// ══════════════════════════════════════════
+// EXPORTAR EXCEL
+// ══════════════════════════════════════════
+function exportarExcel(){
+  // Cargar SheetJS dinámicamente si no está disponible
+  if(typeof XLSX === 'undefined'){
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    script.onload = () => _generarExcel();
+    document.head.appendChild(script);
+  } else {
+    _generarExcel();
+  }
+}
+
+function _generarExcel(){
+  const sel = document.getElementById('rep-mes-select');
+  const selOpt = sel.options[sel.selectedIndex];
+  const filtroY = parseInt(selOpt?.dataset.y ?? new Date().getFullYear());
+  const filtroM = parseInt(selOpt?.dataset.m ?? new Date().getMonth());
+  const filtroLabel = selOpt?.text ?? mesLabel(filtroY, filtroM);
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Hoja 1: Ciclo del mes ──
+  const mesesNombres=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const filasCiclo = [['Cliente','Responsable','Servicio','Cotización','ODC','Factura','Monto Factura','Fecha Pago Prog.','Cta x Cobrar','Pago Recibido','Estatus']];
+  clientes.forEach(c=>{
+    const ciclo=c.ciclo||{};
+    const [,bt]=cicloEstatus(ciclo);
+    filasCiclo.push([
+      c.empresa, c.responsable, c.servicio||'',
+      ciclo.cotizacion_fecha||'', ciclo.odc_fecha||'',
+      ciclo.factura_fecha||'', ciclo.factura_monto||'',
+      ciclo.pago_fecha_val||'',
+      ciclo.cxc?'Sí':'No',
+      ciclo.pago_val||'',
+      bt
+    ]);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(filasCiclo);
+  ws1['!cols']=[{wch:30},{wch:15},{wch:25},{wch:14},{wch:14},{wch:14},{wch:14},{wch:16},{wch:14},{wch:14},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Ciclo Comercial');
+
+  // ── Hoja 2: KPIs del mes ──
+  const filasKpis = [
+    ['Métrica', filtroLabel],
+    ['Cotizaciones enviadas', clientes.filter(c=>fechaEnMes((c.ciclo||{}).cotizacion_fecha,filtroY,filtroM)).length],
+    ['ODCs recibidas', clientes.filter(c=>fechaEnMes((c.ciclo||{}).odc_fecha,filtroY,filtroM)).length],
+    ['Facturas emitidas', clientes.filter(c=>fechaEnMes((c.ciclo||{}).factura_fecha,filtroY,filtroM)).length],
+    ['Monto facturado', clientes.reduce((a,c)=>{const ci=c.ciclo||{};return fechaEnMes(ci.factura_fecha,filtroY,filtroM)?a+(parseFloat(ci.factura_monto||0)||0):a;},0)],
+    ['Cobrado en el mes', clientes.reduce((a,c)=>{const ci=c.ciclo||{};return fechaEnMes(ci.pago_val,filtroY,filtroM)?a+(parseFloat(ci.factura_monto||0)||0):a;},0)],
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(filasKpis);
+  ws2['!cols']=[{wch:28},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws2, `Resumen ${mesesNombres[filtroM]} ${filtroY}`);
+
+  // ── Hoja 3: Equipo ──
+  const filasEquipo=[['Ingeniero','Leads activos','Último movimiento','Estatus']];
+  Object.keys(USERS).forEach(name=>{
+    const uL=leads.filter(l=>l.responsable===name&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido');
+    const lastMov=uL.reduce((acc,l)=>(!acc||l.ultimo_movimiento>acc)?l.ultimo_movimiento:acc,null);
+    const dias=diasDesde(lastMov);
+    const estatus=!uL.length?'Sin leads':dias<=3?'Al día':dias<=7?'Pendiente':'Atención requerida';
+    filasEquipo.push([name, uL.length, lastMov||'—', estatus]);
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet(filasEquipo);
+  ws3['!cols']=[{wch:18},{wch:14},{wch:20},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, ws3, 'Equipo');
+
+  // ── Descargar ──
+  const mesesNombresCompletos=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  XLSX.writeFile(wb, `PMPS_Reporte_${mesesNombresCompletos[filtroM]}_${filtroY}.xlsx`);
+  showToast(`Exportado: PMPS_Reporte_${mesesNombresCompletos[filtroM]}_${filtroY}.xlsx`, '⬇');
 }
 
 // ══════════════════════════════════════════
