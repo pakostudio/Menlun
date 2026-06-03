@@ -278,7 +278,7 @@ textarea{resize:vertical;min-height:70px}
       </div>
       <input class="search-bar" placeholder="🔍 Buscar lead..." oninput="renderLeads(this.value)">
       <div id="leads-list"></div>
-      <button class="add-btn" onclick="openModal('modal-nuevo-lead')">+ Agregar nuevo lead</button>
+      <button class="add-btn" onclick="abrirNuevoLead()">+ Agregar nuevo lead</button>
     </div>
 
     <!-- ══ CLIENTES ══ -->
@@ -291,7 +291,7 @@ textarea{resize:vertical;min-height:70px}
       </div>
       <input class="search-bar" placeholder="🔍 Buscar cliente..." oninput="renderClientes(this.value)">
       <div id="clientes-list"></div>
-      <button class="add-btn" onclick="openModal('modal-nuevo-cliente')">+ Agregar cliente activo</button>
+      <button class="add-btn" onclick="abrirNuevoCliente()">+ Agregar cliente activo</button>
     </div>
 
     <!-- ══ REPORTES ══ -->
@@ -645,7 +645,7 @@ function setSyncStatus(msg){ document.getElementById('sync-status').textContent 
 // API — GOOGLE SHEETS
 // ══════════════════════════════════════════
 async function apiGet(tab){
-  const res = await fetch(`${SCRIPT_URL}?tab=${tab}`);
+  const res = await fetch(`${SCRIPT_URL}?tab=${tab}&cb=${Date.now()}`);
   const data = await res.json();
   return data.rows || [];
 }
