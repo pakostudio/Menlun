@@ -169,10 +169,11 @@ textarea{resize:vertical;min-height:70px}
 .prog-f{height:100%;border-radius:3px}
 .tag-seccion{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:16px 0 10px}
 
-/* TOAST */
-.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:#1B2A4A;color:#fff;padding:11px 22px;border-radius:10px;font-size:13px;font-weight:500;z-index:500;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,0.18)}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast-icon{font-size:15px}
+/* ADMIN TABS */
+.atab{padding:12px 18px;font-size:12px;font-weight:500;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);cursor:pointer;transition:all .15s;font-family:var(--font);white-space:nowrap}
+.atab:hover{color:var(--text)}
+.atab-active{color:var(--accent);border-bottom-color:var(--accent)}
+.fw500{font-weight:500}
 </style>
 </head>
 <body>
@@ -198,6 +199,7 @@ textarea{resize:vertical;min-height:70px}
     <label>Nombre</label>
     <select id="login-user">
       <option value="">— Selecciona —</option>
+      <option value="Administrador:AD" style="font-weight:600">⚙️ Administrador</option>
       <option value="José Carlos:JC">José Carlos</option>
       <option value="Ulises:UL">Ulises</option>
       <option value="Rocío:RO">Rocío</option>
@@ -205,7 +207,6 @@ textarea{resize:vertical;min-height:70px}
       <option value="Daniel:DA">Daniel</option>
       <option value="Ma. Teresa:MT">Ma. Teresa</option>
       <option value="Arturo:AR">Arturo</option>
-      <option value="Pako:PK">Pako</option>
     </select>
     <label>Clave de acceso</label>
     <input type="password" id="login-pin" placeholder="••••••" autocomplete="off">
@@ -236,6 +237,7 @@ textarea{resize:vertical;min-height:70px}
     <div class="nav-item" id="nav-leads" onclick="switchTab('leads')">🎯 Mis Leads</div>
     <div class="nav-item" id="nav-clientes" onclick="switchTab('clientes')">🏢 Mis Clientes</div>
     <div class="nav-item" id="nav-reportes" onclick="switchTab('reportes')">📈 Reportes</div>
+    <div class="nav-item" id="nav-admin" onclick="switchTab('admin')" style="display:none;color:#1B2A4A;font-weight:600">⚙️ Administrador</div>
   </div>
 
   <div class="content">
@@ -346,6 +348,97 @@ textarea{resize:vertical;min-height:70px}
         <div id="rep-alertas"></div>
       </div>
     </div>
+
+    <!-- ══ ADMIN ══ -->
+    <div id="panel-admin" class="panel">
+
+      <!-- KPIs globales admin -->
+      <div class="g4 mb16">
+        <div class="kpi"><div class="kpi-n" id="ak-leads">0</div><div class="kpi-l">Leads totales equipo</div></div>
+        <div class="kpi"><div class="kpi-n" id="ak-clientes">0</div><div class="kpi-l">Clientes totales</div></div>
+        <div class="kpi"><div class="kpi-n text-amber" id="ak-cxc">0</div><div class="kpi-l">Cuentas por cobrar</div></div>
+        <div class="kpi"><div class="kpi-n text-green" id="ak-pipeline">$0</div><div class="kpi-l">Pipeline total</div></div>
+      </div>
+
+      <!-- TABS admin -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;background:var(--surface);border-radius:12px 12px 0 0;overflow:hidden">
+        <button onclick="switchAdminTab('usuarios')" id="atab-usuarios" class="atab atab-active">👥 Usuarios</button>
+        <button onclick="switchAdminTab('todos-leads')" id="atab-todos-leads" class="atab">🎯 Todos los Leads</button>
+        <button onclick="switchAdminTab('todos-clientes')" id="atab-todos-clientes" class="atab">🏢 Todos los Clientes</button>
+        <button onclick="switchAdminTab('migrar')" id="atab-migrar" class="atab">🔄 Migrar</button>
+        <button onclick="switchAdminTab('claves')" id="atab-claves" class="atab">🔑 Claves</button>
+      </div>
+
+      <!-- TAB: USUARIOS -->
+      <div id="apanel-usuarios" class="card" style="padding:16px">
+        <div class="section-title">Usuarios del sistema</div>
+        <div id="admin-users-table"></div>
+        <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
+          <div class="section-title">➕ Nuevo usuario</div>
+          <div class="g2">
+            <div><label>Nombre completo</label><input type="text" id="nu-nombre" placeholder="Ej: Carlos López"></div>
+            <div><label>Iniciales (2 letras)</label><input type="text" id="nu-iniciales" placeholder="CL" maxlength="2"></div>
+          </div>
+          <div class="g2">
+            <div><label>Clave de acceso</label><input type="password" id="nu-clave" placeholder="Clave del nuevo usuario"></div>
+            <div style="display:flex;align-items:flex-end"><button class="btn btn-sm" onclick="addUsuario()" style="margin-bottom:12px;width:100%">Agregar usuario</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: TODOS LOS LEADS -->
+      <div id="apanel-todos-leads" style="display:none">
+        <input class="search-bar" placeholder="🔍 Buscar lead..." oninput="renderAdminLeads(this.value)" id="admin-search-leads">
+        <div id="admin-leads-list"></div>
+      </div>
+
+      <!-- TAB: TODOS LOS CLIENTES -->
+      <div id="apanel-todos-clientes" style="display:none">
+        <input class="search-bar" placeholder="🔍 Buscar cliente..." oninput="renderAdminClientes(this.value)" id="admin-search-clientes">
+        <div id="admin-clientes-list"></div>
+      </div>
+
+      <!-- TAB: MIGRAR -->
+      <div id="apanel-migrar" class="card" style="padding:16px;display:none">
+        <div class="section-title">Migrar leads y clientes entre usuarios</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Mueve todos los registros de un usuario a otro. Útil cuando alguien deja el equipo.</div>
+        <div class="g2">
+          <div>
+            <label>Usuario origen (de quién mover)</label>
+            <select id="migrar-origen" onchange="previewMigrar()" style="margin-bottom:8px">
+              <option value="">— Selecciona —</option>
+            </select>
+            <div id="migrar-preview" style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);min-height:40px"></div>
+          </div>
+          <div>
+            <label>Usuario destino (a quién mover)</label>
+            <select id="migrar-destino" style="margin-bottom:8px">
+              <option value="">— Selecciona —</option>
+            </select>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+              <button class="btn btn-sm" onclick="ejecutarMigrar('leads')" style="background:#185FA5">Migrar solo Leads</button>
+              <button class="btn btn-sm" onclick="ejecutarMigrar('clientes')" style="background:#0F6E56">Migrar solo Clientes</button>
+              <button class="btn btn-sm" onclick="ejecutarMigrar('ambos')">Migrar Todo (leads + clientes)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: CLAVES -->
+      <div id="apanel-claves" class="card" style="padding:16px;display:none">
+        <div class="section-title">Cambiar clave de acceso</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Cambia la clave de cualquier usuario. El cambio aplica en la próxima sesión.</div>
+        <div id="admin-claves-list"></div>
+        <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;font-size:12px;color:var(--muted)">
+          <b>Clave compartida actual del equipo:</b> <code style="background:var(--surface2);padding:2px 8px;border-radius:4px" id="clave-actual-display">—</code>
+          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+            <input type="password" id="nueva-clave-equipo" placeholder="Nueva clave para todos" style="margin:0;flex:1">
+            <button class="btn btn-sm" onclick="cambiarClaveEquipo()">Cambiar clave del equipo</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- fin panel-admin -->
 
   </div>
 </div>
@@ -600,16 +693,35 @@ textarea{resize:vertical;min-height:70px}
 // CONFIG
 // ══════════════════════════════════════════
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxACqAOQ4qjHH3UBaT6ekGN4iJ9TTl6cYSomXYLz-rLYMi1VtSS-s2qWuBSUK1I9Hsc/exec';
-const CLAVE = 'menlun2026';
-const USERS = {
+let CLAVE_EQUIPO = 'menlun2026'; // Clave compartida — admin puede cambiarla
+
+// Claves individuales por usuario (admin puede cambiarlas)
+let CLAVES_LIVE = {
+  'Administrador': 'admin2026',  // PIN exclusivo del admin
+  'José Carlos':   'menlun2026',
+  'Ulises':        'menlun2026',
+  'Rocío':         'menlun2026',
+  'Jesús':         'menlun2026',
+  'Daniel':        'menlun2026',
+  'Ma. Teresa':    'menlun2026',
+  'Arturo':        'menlun2026',
+};
+
+let USERS_LIVE = {
   'José Carlos':{initials:'JC'},'Ulises':{initials:'UL'},'Rocío':{initials:'RO'},
   'Jesús':{initials:'JE'},'Daniel':{initials:'DA'},'Ma. Teresa':{initials:'MT'},
-  'Arturo':{initials:'AR'},'Pako':{initials:'PK'}
+  'Arturo':{initials:'AR'}
 };
+// USERS como alias para compatibilidad con código existente
+const USERS = USERS_LIVE;
+
 const AV_COLORS = {
+  'Administrador':'#0D1F3C',
   'José Carlos':'#1B2A4A','Ulises':'#185FA5','Rocío':'#00AEEF','Jesús':'#854F0B',
-  'Daniel':'#A32D2D','Ma. Teresa':'#0F6E56','Arturo':'#533AB7','Pako':'#444441'
+  'Daniel':'#A32D2D','Ma. Teresa':'#0F6E56','Arturo':'#533AB7'
 };
+
+const isAdmin = () => currentUser?.name === 'Administrador';
 
 let currentUser = null;
 let leads = [];
@@ -755,17 +867,20 @@ function doLogin(){
   if(!sel){ alert('Selecciona tu nombre'); return; }
   const [name, initials] = sel.split(':');
   const entered = document.getElementById('login-pin').value;
-  if(entered !== CLAVE){
+  const claveCorrecta = CLAVES_LIVE[name] || CLAVE_EQUIPO;
+  if(entered !== claveCorrecta){
     document.getElementById('login-error').style.display = 'block';
     return;
   }
   document.getElementById('login-error').style.display = 'none';
   currentUser = {name, initials};
-  document.getElementById('header-avatar').textContent = initials;
+  document.getElementById('header-avatar').textContent = isAdmin() ? '⚙' : initials;
   document.getElementById('header-name').textContent = name;
   document.getElementById('dash-bienvenida').textContent = `Hola, ${name} 👋`;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+  // Mostrar tab admin solo al administrador
+  document.getElementById('nav-admin').style.display = isAdmin() ? 'flex' : 'none';
   cargarDatos();
 }
 document.getElementById('login-pin').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
@@ -784,11 +899,12 @@ function doLogout(){
 // NAVEGACIÓN
 // ══════════════════════════════════════════
 function switchTab(tab){
-  ['dashboard','leads','clientes','reportes'].forEach(t=>{
+  ['dashboard','leads','clientes','reportes','admin'].forEach(t=>{
     document.getElementById('nav-'+t).classList.toggle('active', t===tab);
     document.getElementById('panel-'+t).classList.toggle('active', t===tab);
   });
   if(tab==='reportes') renderReportes();
+  if(tab==='admin') renderAdminPanel();
 }
 
 function switchModalTab(tab, btn){
@@ -1557,6 +1673,279 @@ function renderAll(){
   renderLeads();
   renderClientes();
 }
+
+// ══════════════════════════════════════════
+// ADMIN — panel completo
+// ══════════════════════════════════════════
+
+function renderAdminPanel(){
+  renderAdminKPIs();
+  renderAdminUsers();
+  renderAdminClaves();
+  renderMigrarSelects();
+}
+
+function renderAdminKPIs(){
+  const allLeads = leads.filter(l=>l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido');
+  const pipeline = allLeads.reduce((s,l)=>s+(parseFloat(l.valor||0)||0),0);
+  const cxc = clientes.filter(c=>(c.ciclo||{}).cxc&&!(c.ciclo||{}).pago).length;
+  document.getElementById('ak-leads').textContent = allLeads.length;
+  document.getElementById('ak-clientes').textContent = clientes.length;
+  document.getElementById('ak-cxc').textContent = cxc;
+  document.getElementById('ak-pipeline').textContent = fmtValor(pipeline);
+}
+
+function switchAdminTab(tab){
+  ['usuarios','todos-leads','todos-clientes','migrar','claves'].forEach(t=>{
+    const panel = document.getElementById('apanel-'+t);
+    const btn = document.getElementById('atab-'+t);
+    if(panel) panel.style.display = t===tab ? 'block' : 'none';
+    if(btn){ btn.classList.toggle('atab-active', t===tab); }
+  });
+  if(tab==='todos-leads') renderAdminLeads();
+  if(tab==='todos-clientes') renderAdminClientes();
+}
+
+function renderAdminUsers(){
+  const allNames = Object.keys(USERS_LIVE);
+  const list = document.getElementById('admin-users-table');
+  if(!list) return;
+  list.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 80px 60px auto;gap:8px;padding:6px 0;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)">
+      <span>Nombre</span><span>Iniciales</span><span>Leads</span><span></span>
+    </div>
+    ${allNames.map(name=>{
+      const u = USERS_LIVE[name];
+      const nLeads = leads.filter(l=>l.responsable===name).length;
+      const nClientes = clientes.filter(c=>c.responsable===name).length;
+      return `<div style="display:grid;grid-template-columns:1fr 80px 60px auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <input value="${name}" id="uname-${name.replace(/\s/g,'_')}" 
+          style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font);background:var(--bg)"
+          onchange="updateUserName('${name}', this.value)">
+        <span style="font-size:12px;color:var(--muted);font-family:var(--mono)">${u.initials}</span>
+        <span style="font-size:12px;color:var(--muted)">${nLeads}L / ${nClientes}C</span>
+        <button onclick="removeUser('${name}')" 
+          style="background:none;border:1px solid #fca5a5;border-radius:6px;padding:4px 10px;color:var(--red);font-size:11px;cursor:pointer;white-space:nowrap">
+          Eliminar
+        </button>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+function updateUserName(oldName, newName){
+  newName = newName.trim();
+  if(!newName || newName===oldName) return;
+  if(USERS_LIVE[newName]){ showToast('Ya existe un usuario con ese nombre','⚠️'); return; }
+  USERS_LIVE[newName] = USERS_LIVE[oldName];
+  CLAVES_LIVE[newName] = CLAVES_LIVE[oldName];
+  delete USERS_LIVE[oldName];
+  delete CLAVES_LIVE[oldName];
+  // Actualizar dropdown login
+  rebuildLoginSelect();
+  showToast(`Nombre actualizado a "${newName}" ✓`);
+}
+
+function removeUser(name){
+  const nL = leads.filter(l=>l.responsable===name).length;
+  const nC = clientes.filter(c=>c.responsable===name).length;
+  if(!confirm(`¿Eliminar a ${name}?\nTiene ${nL} leads y ${nC} clientes asignados.\nAnte de eliminar, usa "Migrar" para reasignar sus registros.`)) return;
+  delete USERS_LIVE[name];
+  delete CLAVES_LIVE[name];
+  rebuildLoginSelect();
+  renderAdminUsers();
+  renderAdminClaves();
+  renderMigrarSelects();
+  showToast(`${name} eliminado del sistema`);
+}
+
+function addUsuario(){
+  const nombre = document.getElementById('nu-nombre').value.trim();
+  const iniciales = document.getElementById('nu-iniciales').value.trim().toUpperCase();
+  const clave = document.getElementById('nu-clave').value.trim();
+  if(!nombre||!iniciales){ showToast('Nombre e iniciales son requeridos','⚠️'); return; }
+  if(USERS_LIVE[nombre]){ showToast('Ya existe un usuario con ese nombre','⚠️'); return; }
+  USERS_LIVE[nombre] = { initials: iniciales };
+  CLAVES_LIVE[nombre] = clave || CLAVE_EQUIPO;
+  AV_COLORS[nombre] = '#'+Math.floor(Math.random()*0x666666+0x333333).toString(16);
+  document.getElementById('nu-nombre').value='';
+  document.getElementById('nu-iniciales').value='';
+  document.getElementById('nu-clave').value='';
+  rebuildLoginSelect();
+  renderAdminUsers();
+  renderAdminClaves();
+  renderMigrarSelects();
+  showToast(`Usuario ${nombre} agregado ✓`);
+}
+
+function rebuildLoginSelect(){
+  const sel = document.getElementById('login-user');
+  const names = Object.keys(USERS_LIVE);
+  sel.innerHTML = `<option value="">— Selecciona —</option>
+    <option value="Administrador:AD" style="font-weight:600">⚙️ Administrador</option>
+    ${names.map(n=>`<option value="${n}:${USERS_LIVE[n].initials}">${n}</option>`).join('')}`;
+}
+
+function renderAdminClaves(){
+  const list = document.getElementById('admin-claves-list');
+  if(!list) return;
+  const display = document.getElementById('clave-actual-display');
+  if(display) display.textContent = CLAVE_EQUIPO;
+  const allUsers = ['Administrador', ...Object.keys(USERS_LIVE)];
+  list.innerHTML = allUsers.map(name=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="flex:1;font-size:13px;font-weight:500">${name}</span>
+      <input type="password" value="${CLAVES_LIVE[name]||''}" id="clave-edit-${name.replace(/\s/g,'_')}"
+        style="width:160px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:var(--mono);background:var(--bg);margin:0">
+      <button onclick="guardarClave('${name}')"
+        style="background:var(--accent);border:none;border-radius:6px;padding:6px 14px;color:#fff;font-size:12px;cursor:pointer;white-space:nowrap">
+        Guardar
+      </button>
+    </div>
+  `).join('');
+}
+
+function guardarClave(name){
+  const input = document.getElementById('clave-edit-'+name.replace(/\s/g,'_'));
+  const nueva = input.value.trim();
+  if(!nueva){ showToast('La clave no puede estar vacía','⚠️'); return; }
+  CLAVES_LIVE[name] = nueva;
+  showToast(`Clave de ${name} actualizada ✓`);
+}
+
+function cambiarClaveEquipo(){
+  const nueva = document.getElementById('nueva-clave-equipo').value.trim();
+  if(!nueva){ showToast('Ingresa la nueva clave','⚠️'); return; }
+  CLAVE_EQUIPO = nueva;
+  // Actualizar todos los usuarios que usaban la clave del equipo
+  Object.keys(CLAVES_LIVE).forEach(name=>{
+    if(name!=='Administrador') CLAVES_LIVE[name] = nueva;
+  });
+  document.getElementById('nueva-clave-equipo').value='';
+  renderAdminClaves();
+  showToast(`Clave del equipo actualizada a "${nueva}" ✓`);
+}
+
+function renderMigrarSelects(){
+  const names = Object.keys(USERS_LIVE);
+  ['migrar-origen','migrar-destino'].forEach(id=>{
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    sel.innerHTML = `<option value="">— Selecciona —</option>${names.map(n=>`<option value="${n}">${n}</option>`).join('')}`;
+  });
+}
+
+function previewMigrar(){
+  const origen = document.getElementById('migrar-origen').value;
+  const preview = document.getElementById('migrar-preview');
+  if(!origen||!preview){ if(preview) preview.textContent=''; return; }
+  const nL = leads.filter(l=>l.responsable===origen).length;
+  const nC = clientes.filter(c=>c.responsable===origen).length;
+  preview.innerHTML = `<b>${nL}</b> leads · <b>${nC}</b> clientes asignados a <b>${origen}</b>`;
+}
+
+async function ejecutarMigrar(tipo){
+  const origen = document.getElementById('migrar-origen').value;
+  const destino = document.getElementById('migrar-destino').value;
+  if(!origen||!destino){ showToast('Selecciona origen y destino','⚠️'); return; }
+  if(origen===destino){ showToast('Origen y destino son iguales','⚠️'); return; }
+
+  const leadsAfect = tipo!=='clientes' ? leads.filter(l=>l.responsable===origen) : [];
+  const clientesAfect = tipo!=='leads' ? clientes.filter(c=>c.responsable===origen) : [];
+  const total = leadsAfect.length + clientesAfect.length;
+
+  if(!total){ showToast(`${origen} no tiene registros del tipo seleccionado`,'⚠️'); return; }
+  if(!confirm(`¿Migrar ${leadsAfect.length} leads y ${clientesAfect.length} clientes de ${origen} → ${destino}?`)) return;
+
+  setLoading(true, 'Migrando registros...');
+  let ok = 0, err = 0;
+
+  for(const l of leadsAfect){
+    const updated = {...l, responsable: destino};
+    const r = await apiPost('upsert','prospectos', updated);
+    if(r.ok){ l.responsable=destino; ok++; } else err++;
+  }
+  for(const c of clientesAfect){
+    const updated = {...c, responsable: destino};
+    const r = await apiPost('upsert','clientes', updated);
+    if(r.ok){ c.responsable=destino; ok++; } else err++;
+  }
+
+  setLoading(false);
+  renderAll();
+  renderAdminPanel();
+  showToast(`Migrados ${ok} registros a ${destino}${err?` · ${err} errores`:''}  ✓`);
+}
+
+function renderAdminLeads(filtro=''){
+  const list = document.getElementById('admin-leads-list');
+  if(!list) return;
+  const all = leads.filter(l=>!filtro||l.empresa.toLowerCase().includes(filtro.toLowerCase())||l.responsable?.toLowerCase().includes(filtro.toLowerCase()));
+  if(!all.length){ list.innerHTML='<div class="empty-state">Sin leads</div>'; return; }
+  list.innerHTML = all.map(l=>{
+    const dias = diasDesde(l.ultimo_movimiento);
+    const [bc] = dias<=3?['badge-green']:dias<=7?['badge-amber']:['badge-red'];
+    const col = AV_COLORS[l.responsable]||'#444';
+    return `<div class="card" style="margin-bottom:6px">
+      <div style="padding:10px 14px;display:flex;align-items:center;gap:10px">
+        <div class="avatar" style="background:${col};color:#fff;font-size:10px;flex-shrink:0">${USERS_LIVE[l.responsable]?.initials||'?'}</div>
+        <div style="flex:1;min-width:0">
+          <div class="fw500" style="font-size:13px">${l.empresa}</div>
+          <div class="muted">${l.responsable||'—'} · ${l.etapa} · ${fmtValor(l.valor)}</div>
+        </div>
+        <span class="badge ${bc}">${dias===0?'Hoy':dias===1?'Ayer':'Hace '+dias+'d'}</span>
+        <button onclick="abrirReasignarLead('${l.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:var(--muted)">Reasignar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAdminClientes(filtro=''){
+  const list = document.getElementById('admin-clientes-list');
+  if(!list) return;
+  const all = clientes.filter(c=>!filtro||c.empresa.toLowerCase().includes(filtro.toLowerCase())||c.responsable?.toLowerCase().includes(filtro.toLowerCase()));
+  if(!all.length){ list.innerHTML='<div class="empty-state">Sin clientes</div>'; return; }
+  list.innerHTML = all.map(c=>{
+    const col = AV_COLORS[c.responsable]||'#444';
+    return `<div class="card" style="margin-bottom:6px">
+      <div style="padding:10px 14px;display:flex;align-items:center;gap:10px">
+        <div class="avatar" style="background:${col};color:#fff;font-size:10px;flex-shrink:0">${USERS_LIVE[c.responsable]?.initials||'?'}</div>
+        <div style="flex:1;min-width:0">
+          <div class="fw500" style="font-size:13px">${c.empresa}</div>
+          <div class="muted">${c.responsable||'—'} · ${c.servicio||'—'}</div>
+        </div>
+        <button onclick="abrirReasignarCliente('${c.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:var(--muted)">Reasignar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function abrirReasignarLead(id){
+  const l = leads.find(x=>x.id===id);
+  if(!l) return;
+  const opciones = Object.keys(USERS_LIVE).join(', ');
+  const destino = prompt(`Reasignar lead "${l.empresa}"\nActual: ${l.responsable}\n\nNuevo responsable:\n${opciones}`);
+  if(!destino||!USERS_LIVE[destino]){ if(destino!==null) showToast('Nombre no válido','⚠️'); return; }
+  setLoading(true,'Reasignando...');
+  const r = await apiPost('upsert','prospectos',{...l, responsable:destino});
+  if(r.ok){ l.responsable=destino; renderAll(); renderAdminLeads(document.getElementById('admin-search-leads')?.value||''); showToast(`Lead reasignado a ${destino} ✓`); }
+  else showToast('Error al reasignar','⚠️');
+  setLoading(false);
+}
+
+async function abrirReasignarCliente(id){
+  const c = clientes.find(x=>x.id===id);
+  if(!c) return;
+  const opciones = Object.keys(USERS_LIVE).join(', ');
+  const destino = prompt(`Reasignar cliente "${c.empresa}"\nActual: ${c.responsable}\n\nNuevo responsable:\n${opciones}`);
+  if(!destino||!USERS_LIVE[destino]){ if(destino!==null) showToast('Nombre no válido','⚠️'); return; }
+  setLoading(true,'Reasignando...');
+  const r = await apiPost('upsert','clientes',{...c, responsable:destino});
+  if(r.ok){ c.responsable=destino; renderAll(); renderAdminClientes(document.getElementById('admin-search-clientes')?.value||''); showToast(`Cliente reasignado a ${destino} ✓`); }
+  else showToast('Error al reasignar','⚠️');
+  setLoading(false);
+}
+
 </script>
 </body>
 </html>
