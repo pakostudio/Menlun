@@ -352,88 +352,183 @@ textarea{resize:vertical;min-height:70px}
     <!-- ══ ADMIN ══ -->
     <div id="panel-admin" class="panel">
 
-      <!-- KPIs globales admin -->
+      <!-- HEADER admin -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:16px;font-weight:600">⚙️ Panel de Administrador</div>
+          <div class="muted">Radiografía completa del equipo en tiempo real</div>
+        </div>
+        <button class="btn btn-sm" onclick="cargarDatos();renderAdminPanel()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)">↻ Actualizar</button>
+      </div>
+
+      <!-- KPIs globales -->
       <div class="g4 mb16">
-        <div class="kpi"><div class="kpi-n" id="ak-leads">0</div><div class="kpi-l">Leads totales equipo</div></div>
-        <div class="kpi"><div class="kpi-n" id="ak-clientes">0</div><div class="kpi-l">Clientes totales</div></div>
-        <div class="kpi"><div class="kpi-n text-amber" id="ak-cxc">0</div><div class="kpi-l">Cuentas por cobrar</div></div>
-        <div class="kpi"><div class="kpi-n text-green" id="ak-pipeline">$0</div><div class="kpi-l">Pipeline total</div></div>
+        <div class="kpi" style="border-color:#B3DFF5"><div class="kpi-n text-green" id="ak-pipeline">$0</div><div class="kpi-l">Pipeline total</div></div>
+        <div class="kpi"><div class="kpi-n" id="ak-leads">0</div><div class="kpi-l">Leads activos</div></div>
+        <div class="kpi"><div class="kpi-n" id="ak-clientes">0</div><div class="kpi-l">Clientes activos</div></div>
+        <div class="kpi" style="border-color:#FAC775"><div class="kpi-n text-amber" id="ak-cxc">0</div><div class="kpi-l">Cuentas por cobrar</div></div>
       </div>
 
       <!-- TABS admin -->
-      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;background:var(--surface);border-radius:12px 12px 0 0;overflow:hidden">
-        <button onclick="switchAdminTab('usuarios')" id="atab-usuarios" class="atab atab-active">👥 Usuarios</button>
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto">
+        <button onclick="switchAdminTab('overview')" id="atab-overview" class="atab atab-active">📊 Overview</button>
+        <button onclick="switchAdminTab('kanban')" id="atab-kanban" class="atab">🗂 Kanban</button>
         <button onclick="switchAdminTab('todos-leads')" id="atab-todos-leads" class="atab">🎯 Todos los Leads</button>
         <button onclick="switchAdminTab('todos-clientes')" id="atab-todos-clientes" class="atab">🏢 Todos los Clientes</button>
+        <button onclick="switchAdminTab('importar')" id="atab-importar" class="atab">⬇️ Importar</button>
         <button onclick="switchAdminTab('migrar')" id="atab-migrar" class="atab">🔄 Migrar</button>
+        <button onclick="switchAdminTab('usuarios')" id="atab-usuarios" class="atab">👥 Usuarios</button>
         <button onclick="switchAdminTab('claves')" id="atab-claves" class="atab">🔑 Claves</button>
       </div>
 
-      <!-- TAB: USUARIOS -->
-      <div id="apanel-usuarios" class="card" style="padding:16px">
-        <div class="section-title">Usuarios del sistema</div>
-        <div id="admin-users-table"></div>
-        <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
-          <div class="section-title">➕ Nuevo usuario</div>
-          <div class="g2">
-            <div><label>Nombre completo</label><input type="text" id="nu-nombre" placeholder="Ej: Carlos López"></div>
-            <div><label>Iniciales (2 letras)</label><input type="text" id="nu-iniciales" placeholder="CL" maxlength="2"></div>
-          </div>
-          <div class="g2">
-            <div><label>Clave de acceso</label><input type="password" id="nu-clave" placeholder="Clave del nuevo usuario"></div>
-            <div style="display:flex;align-items:flex-end"><button class="btn btn-sm" onclick="addUsuario()" style="margin-bottom:12px;width:100%">Agregar usuario</button></div>
-          </div>
+      <!-- TAB: OVERVIEW -->
+      <div id="apanel-overview">
+
+        <!-- Semáforo del equipo -->
+        <div class="card mb16" style="padding:16px">
+          <div class="section-title">🚦 Semáforo del equipo</div>
+          <div id="admin-semaforo" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px"></div>
         </div>
+
+        <!-- Pipeline por vendedor -->
+        <div class="card mb16" style="padding:16px">
+          <div class="section-title">💰 Pipeline por vendedor</div>
+          <div id="admin-pipeline-bars"></div>
+        </div>
+
+        <!-- Alertas globales -->
+        <div class="card mb16" style="padding:16px;border-color:#F09595">
+          <div class="section-title" style="color:var(--red)">⚠️ Alertas que requieren atención</div>
+          <div id="admin-alertas-global"></div>
+        </div>
+
+        <!-- Distribución por etapa -->
+        <div class="card mb16" style="padding:16px">
+          <div class="section-title">📈 Distribución por etapa</div>
+          <div id="admin-etapas-bars"></div>
+        </div>
+
+      </div>
+
+      <!-- TAB: KANBAN -->
+      <div id="apanel-kanban" style="display:none">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pipeline visual de todos los leads del equipo</div>
+        <div id="admin-kanban" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;overflow-x:auto;min-width:0"></div>
       </div>
 
       <!-- TAB: TODOS LOS LEADS -->
       <div id="apanel-todos-leads" style="display:none">
-        <input class="search-bar" placeholder="🔍 Buscar lead..." oninput="renderAdminLeads(this.value)" id="admin-search-leads">
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <input class="search-bar" placeholder="🔍 Buscar empresa o vendedor..." oninput="renderAdminLeads(this.value)" id="admin-search-leads" style="margin:0;flex:1;min-width:200px">
+          <select id="admin-filter-vendedor" onchange="renderAdminLeads(document.getElementById('admin-search-leads').value)" style="padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-family:var(--font);font-size:13px;background:var(--bg);margin:0">
+            <option value="">Todos los vendedores</option>
+          </select>
+        </div>
         <div id="admin-leads-list"></div>
       </div>
 
       <!-- TAB: TODOS LOS CLIENTES -->
       <div id="apanel-todos-clientes" style="display:none">
-        <input class="search-bar" placeholder="🔍 Buscar cliente..." oninput="renderAdminClientes(this.value)" id="admin-search-clientes">
+        <input class="search-bar" placeholder="🔍 Buscar cliente o vendedor..." oninput="renderAdminClientes(this.value)" id="admin-search-clientes">
         <div id="admin-clientes-list"></div>
       </div>
 
-      <!-- TAB: MIGRAR -->
-      <div id="apanel-migrar" class="card" style="padding:16px;display:none">
-        <div class="section-title">Migrar leads y clientes entre usuarios</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Mueve todos los registros de un usuario a otro. Útil cuando alguien deja el equipo.</div>
-        <div class="g2">
-          <div>
-            <label>Usuario origen (de quién mover)</label>
-            <select id="migrar-origen" onchange="previewMigrar()" style="margin-bottom:8px">
-              <option value="">— Selecciona —</option>
-            </select>
-            <div id="migrar-preview" style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);min-height:40px"></div>
+      <!-- TAB: IMPORTAR desde Directorio -->
+      <div id="apanel-importar" style="display:none">
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <div class="section-title">⬇️ Importar prospecto desde el Directorio</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Pega los datos del prospecto del directorio de prospectos y conviértelo en un lead del CRM.</div>
+          <div class="g2">
+            <div><label>Empresa *</label><input type="text" id="imp-empresa" placeholder="Nombre del establecimiento"></div>
+            <div><label>Contacto</label><input type="text" id="imp-contacto" placeholder="Nombre del contacto"></div>
           </div>
-          <div>
-            <label>Usuario destino (a quién mover)</label>
-            <select id="migrar-destino" style="margin-bottom:8px">
-              <option value="">— Selecciona —</option>
-            </select>
-            <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
-              <button class="btn btn-sm" onclick="ejecutarMigrar('leads')" style="background:#185FA5">Migrar solo Leads</button>
-              <button class="btn btn-sm" onclick="ejecutarMigrar('clientes')" style="background:#0F6E56">Migrar solo Clientes</button>
-              <button class="btn btn-sm" onclick="ejecutarMigrar('ambos')">Migrar Todo (leads + clientes)</button>
+          <div class="g2">
+            <div><label>Teléfono</label><input type="tel" id="imp-telefono" placeholder="+52 55..."></div>
+            <div><label>Email</label><input type="email" id="imp-email" placeholder="correo@empresa.com"></div>
+          </div>
+          <div class="g2">
+            <div><label>Giro / Sector</label><input type="text" id="imp-giro" placeholder="Ej: Alimentos · Bebidas · Farmacéutico"></div>
+            <div><label>Municipio, Estado</label><input type="text" id="imp-ubicacion" placeholder="Monterrey, Nuevo León"></div>
+          </div>
+          <div class="g2">
+            <div><label>Asignar a vendedor *</label>
+              <select id="imp-vendedor" style="margin-bottom:12px">
+                <option value="">— Selecciona —</option>
+              </select>
+            </div>
+            <div><label>Valor estimado ($)</label><input type="number" id="imp-valor" placeholder="0"></div>
+          </div>
+          <div><label>Notas adicionales</label><textarea id="imp-notas" placeholder="Contexto del prospecto, tier, zona..."></textarea></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm" onclick="importarProspecto()" style="background:#0F6E56">⬇️ Importar como Lead</button>
+            <button class="btn btn-sm btn-ghost" onclick="limpiarImportacion()">Limpiar</button>
+          </div>
+        </div>
+        <div class="card" style="padding:16px">
+          <div class="section-title">📋 Últimos importados</div>
+          <div id="imp-historial" style="font-size:12px;color:var(--muted)">Sin importaciones recientes en esta sesión.</div>
+        </div>
+      </div>
+
+      <!-- TAB: MIGRAR -->
+      <div id="apanel-migrar" style="display:none">
+        <div class="card" style="padding:16px">
+          <div class="section-title">🔄 Migrar leads y clientes entre usuarios</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Mueve todos los registros de un usuario a otro. Útil cuando alguien deja el equipo.</div>
+          <div class="g2">
+            <div>
+              <label>Usuario origen (de quién mover)</label>
+              <select id="migrar-origen" onchange="previewMigrar()" style="margin-bottom:8px">
+                <option value="">— Selecciona —</option>
+              </select>
+              <div id="migrar-preview" style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);min-height:40px"></div>
+            </div>
+            <div>
+              <label>Usuario destino (a quién mover)</label>
+              <select id="migrar-destino" style="margin-bottom:8px">
+                <option value="">— Selecciona —</option>
+              </select>
+              <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+                <button class="btn btn-sm" onclick="ejecutarMigrar('leads')" style="background:#185FA5">Migrar solo Leads</button>
+                <button class="btn btn-sm" onclick="ejecutarMigrar('clientes')" style="background:#0F6E56">Migrar solo Clientes</button>
+                <button class="btn btn-sm" onclick="ejecutarMigrar('ambos')">Migrar Todo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: USUARIOS -->
+      <div id="apanel-usuarios" style="display:none">
+        <div class="card" style="padding:16px">
+          <div class="section-title">Usuarios del sistema</div>
+          <div id="admin-users-table"></div>
+          <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px">
+            <div class="section-title">➕ Nuevo usuario</div>
+            <div class="g2">
+              <div><label>Nombre completo</label><input type="text" id="nu-nombre" placeholder="Ej: Carlos López"></div>
+              <div><label>Iniciales (2 letras)</label><input type="text" id="nu-iniciales" placeholder="CL" maxlength="2"></div>
+            </div>
+            <div class="g2">
+              <div><label>Clave de acceso</label><input type="password" id="nu-clave" placeholder="Clave del nuevo usuario"></div>
+              <div style="display:flex;align-items:flex-end"><button class="btn btn-sm" onclick="addUsuario()" style="margin-bottom:12px;width:100%">Agregar usuario</button></div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- TAB: CLAVES -->
-      <div id="apanel-claves" class="card" style="padding:16px;display:none">
-        <div class="section-title">Cambiar clave de acceso</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Cambia la clave de cualquier usuario. El cambio aplica en la próxima sesión.</div>
-        <div id="admin-claves-list"></div>
-        <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;font-size:12px;color:var(--muted)">
-          <b>Clave compartida actual del equipo:</b> <code style="background:var(--surface2);padding:2px 8px;border-radius:4px" id="clave-actual-display">—</code>
-          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-            <input type="password" id="nueva-clave-equipo" placeholder="Nueva clave para todos" style="margin:0;flex:1">
-            <button class="btn btn-sm" onclick="cambiarClaveEquipo()">Cambiar clave del equipo</button>
+      <div id="apanel-claves" style="display:none">
+        <div class="card" style="padding:16px">
+          <div class="section-title">🔑 Cambiar clave de acceso</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Cambia la clave individual de cada usuario.</div>
+          <div id="admin-claves-list"></div>
+          <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;font-size:12px;color:var(--muted)">
+            <b>Clave compartida del equipo:</b> <code style="background:var(--surface2);padding:2px 8px;border-radius:4px" id="clave-actual-display">—</code>
+            <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+              <input type="password" id="nueva-clave-equipo" placeholder="Nueva clave para todos" style="margin:0;flex:1">
+              <button class="btn btn-sm" onclick="cambiarClaveEquipo()">Cambiar clave del equipo</button>
+            </div>
           </div>
         </div>
       </div>
@@ -881,7 +976,7 @@ function doLogin(){
   document.getElementById('app').style.display = 'block';
   // Mostrar tab admin solo al administrador
   document.getElementById('nav-admin').style.display = isAdmin() ? 'flex' : 'none';
-  cargarDatos();
+  cargarDatos().then(()=>{ if(isAdmin()) switchTab('admin'); });
 }
 document.getElementById('login-pin').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
 
@@ -1680,31 +1775,258 @@ function renderAll(){
 
 function renderAdminPanel(){
   renderAdminKPIs();
+  renderAdminOverview();
   renderAdminUsers();
   renderAdminClaves();
   renderMigrarSelects();
+  renderImportarVendedores();
 }
 
 function renderAdminKPIs(){
-  const allLeads = leads.filter(l=>l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido');
-  const pipeline = allLeads.reduce((s,l)=>s+(parseFloat(l.valor||0)||0),0);
+  const activos = leads.filter(l=>l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido');
+  const pipeline = activos.reduce((s,l)=>s+(parseFloat(l.valor||0)||0),0);
   const cxc = clientes.filter(c=>(c.ciclo||{}).cxc&&!(c.ciclo||{}).pago).length;
-  document.getElementById('ak-leads').textContent = allLeads.length;
+  document.getElementById('ak-leads').textContent = activos.length;
   document.getElementById('ak-clientes').textContent = clientes.length;
   document.getElementById('ak-cxc').textContent = cxc;
   document.getElementById('ak-pipeline').textContent = fmtValor(pipeline);
 }
 
 function switchAdminTab(tab){
-  ['usuarios','todos-leads','todos-clientes','migrar','claves'].forEach(t=>{
+  const tabs = ['overview','kanban','todos-leads','todos-clientes','importar','migrar','usuarios','claves'];
+  tabs.forEach(t=>{
     const panel = document.getElementById('apanel-'+t);
     const btn = document.getElementById('atab-'+t);
     if(panel) panel.style.display = t===tab ? 'block' : 'none';
     if(btn){ btn.classList.toggle('atab-active', t===tab); }
   });
+  if(tab==='overview') renderAdminOverview();
+  if(tab==='kanban') renderAdminKanban();
   if(tab==='todos-leads') renderAdminLeads();
   if(tab==='todos-clientes') renderAdminClientes();
 }
+
+function renderAdminOverview(){
+  renderSemaforo();
+  renderPipelineBars();
+  renderAlertasGlobal();
+  renderEtapasBars();
+}
+
+function renderSemaforo(){
+  const el = document.getElementById('admin-semaforo');
+  if(!el) return;
+  const nombres = Object.keys(USERS_LIVE);
+  el.innerHTML = nombres.map(name=>{
+    const uLeads = leads.filter(l=>l.responsable===name&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido');
+    const uClientes = clientes.filter(c=>c.responsable===name);
+    const lastMov = uLeads.reduce((acc,l)=>(!acc||l.ultimo_movimiento>acc)?l.ultimo_movimiento:acc,null);
+    const dias = diasDesde(lastMov);
+    const pipeline = uLeads.reduce((s,l)=>s+(parseFloat(l.valor||0)||0),0);
+    const frios = uLeads.filter(l=>diasDesde(l.ultimo_movimiento)>=7).length;
+    const cxc = uClientes.filter(c=>(c.ciclo||{}).cxc&&!(c.ciclo||{}).pago).length;
+    let color, label, semColor;
+    if(!uLeads.length && !uClientes.length){ color='var(--surface2)'; label='Sin actividad'; semColor='#ccc'; }
+    else if(dias<=3){ color='#D1FAE5'; label='Al día'; semColor='#10B981'; }
+    else if(dias<=7){ color='#FEF3C7'; label='Pendiente'; semColor='#F59E0B'; }
+    else { color='#FEE2E2'; label='Atención'; semColor='#EF4444'; }
+    const col = AV_COLORS[name]||'#444';
+    const ini = USERS_LIVE[name]?.initials||name.slice(0,2).toUpperCase();
+    return `<div style="background:${color};border-radius:10px;padding:12px;border:1px solid rgba(0,0,0,0.06)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0">${ini}</div>
+        <div style="font-size:13px;font-weight:600;flex:1">${name}</div>
+        <div style="width:10px;height:10px;border-radius:50%;background:${semColor};flex-shrink:0"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:2px">
+        <span>${uLeads.length} leads · ${uClientes.length} clientes</span>
+        <span style="font-weight:600;color:var(--text)">${fmtValor(pipeline)} pipeline</span>
+        ${frios?`<span style="color:#EF4444">⚠️ ${frios} sin contacto</span>`:''}
+        ${cxc?`<span style="color:#F59E0B">💰 ${cxc} cta x cobrar</span>`:''}
+        <span style="font-size:10px;margin-top:2px;font-weight:500;color:${semColor}">${label}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderPipelineBars(){
+  const el = document.getElementById('admin-pipeline-bars');
+  if(!el) return;
+  const nombres = Object.keys(USERS_LIVE);
+  const datos = nombres.map(name=>{
+    const val = leads.filter(l=>l.responsable===name&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido')
+                     .reduce((s,l)=>s+(parseFloat(l.valor||0)||0),0);
+    return { name, val, col: AV_COLORS[name]||'#444', ini: USERS_LIVE[name]?.initials||'?' };
+  }).sort((a,b)=>b.val-a.val);
+  const max = datos[0]?.val||1;
+  el.innerHTML = datos.map(d=>`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:24px;height:24px;border-radius:50%;background:${d.col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;flex-shrink:0">${d.ini}</div>
+      <div style="width:80px;font-size:12px;font-weight:500;flex-shrink:0">${d.name.split(' ')[0]}</div>
+      <div style="flex:1;background:var(--surface2);border-radius:4px;height:18px;overflow:hidden">
+        <div style="height:100%;width:${Math.max(2,Math.round(d.val/max*100))}%;background:${d.col};border-radius:4px;transition:width .4s"></div>
+      </div>
+      <div style="width:70px;text-align:right;font-size:12px;font-weight:600;color:var(--text)">${fmtValor(d.val)}</div>
+    </div>
+  `).join('');
+}
+
+function renderAlertasGlobal(){
+  const el = document.getElementById('admin-alertas-global');
+  if(!el) return;
+  const alertas = [];
+  leads.forEach(l=>{
+    if(l.etapa==='Cerrado ganado'||l.etapa==='Cerrado perdido') return;
+    const dias = diasDesde(l.ultimo_movimiento);
+    if(dias>=7) alertas.push({ txt:`${l.empresa}`, sub:`Sin contacto ${dias} días · ${l.responsable}`, tipo:'red', icon:'❄️' });
+  });
+  clientes.forEach(c=>{
+    const ciclo = c.ciclo||{};
+    if(ciclo.cxc&&!ciclo.pago) alertas.push({ txt:c.empresa, sub:`Cuenta por cobrar pendiente · ${c.responsable}`, tipo:'amber', icon:'💰' });
+    if(ciclo.pago_fecha_val&&!ciclo.pago){
+      const diasPago = Math.floor((new Date(ciclo.pago_fecha_val)-new Date())/86400000);
+      if(diasPago<=3) alertas.push({ txt:c.empresa, sub:`Pago vence ${diasPago<0?'hace '+Math.abs(diasPago)+' días':'en '+diasPago+' días'} · ${c.responsable}`, tipo:'red', icon:'📅' });
+    }
+  });
+  if(!alertas.length){
+    el.innerHTML = '<div class="muted" style="text-align:center;padding:16px">Sin alertas activas — todo en orden ✓</div>';
+    return;
+  }
+  el.innerHTML = alertas.slice(0,10).map(a=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="font-size:16px">${a.icon}</div>
+      <div style="flex:1"><div class="fw500" style="font-size:13px">${a.txt}</div><div class="muted">${a.sub}</div></div>
+    </div>
+  `).join('');
+}
+
+function renderEtapasBars(){
+  const el = document.getElementById('admin-etapas-bars');
+  if(!el) return;
+  const etapas = ['Prospecto','Contactado','Propuesta','Negociación','Cerrado ganado','Cerrado perdido'];
+  const colors = {'Prospecto':'#8A8780','Contactado':'#185FA5','Propuesta':'#854F0B','Negociación':'#533AB7','Cerrado ganado':'#0F6E56','Cerrado perdido':'#A32D2D'};
+  const counts = {};
+  etapas.forEach(e=>counts[e]=0);
+  leads.forEach(l=>{ if(counts[l.etapa]!==undefined) counts[l.etapa]++; });
+  const max = Math.max(...Object.values(counts),1);
+  el.innerHTML = `<div style="display:flex;gap:8px;align-items:flex-end;height:80px;margin-bottom:8px">
+    ${etapas.map(e=>{
+      const h = Math.max(4,Math.round(counts[e]/max*70));
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div style="font-size:11px;font-weight:600;color:var(--text)">${counts[e]}</div>
+        <div style="width:100%;height:${h}px;background:${colors[e]};border-radius:4px 4px 0 0;opacity:0.85"></div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div style="display:flex;gap:8px">
+    ${etapas.map(e=>`<div style="flex:1;font-size:9px;color:var(--muted);text-align:center;line-height:1.3">${e.replace(' ','<br>')}</div>`).join('')}
+  </div>`;
+}
+
+function renderAdminKanban(){
+  const el = document.getElementById('admin-kanban');
+  if(!el) return;
+  const etapas = ['Prospecto','Contactado','Propuesta','Negociación','Cerrado ganado'];
+  const colors = {'Prospecto':'#8A8780','Contactado':'#185FA5','Propuesta':'#854F0B','Negociación':'#533AB7','Cerrado ganado':'#0F6E56'};
+  el.innerHTML = etapas.map(etapa=>{
+    const etapaLeads = leads.filter(l=>l.etapa===etapa);
+    const total = etapaLeads.reduce((s,l)=>s+(parseFloat(l.valor||0)||0),0);
+    return `<div style="background:var(--surface2);border-radius:10px;padding:10px;min-height:200px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid ${colors[etapa]}">
+        <div style="flex:1;font-size:12px;font-weight:600">${etapa}</div>
+        <div style="background:${colors[etapa]};color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600">${etapaLeads.length}</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">${fmtValor(total)}</div>
+      ${etapaLeads.map(l=>{
+        const col = AV_COLORS[l.responsable]||'#444';
+        const ini = USERS_LIVE[l.responsable]?.initials||'?';
+        const dias = diasDesde(l.ultimo_movimiento);
+        const frio = dias>=7;
+        return `<div style="background:var(--surface);border-radius:8px;padding:8px 10px;margin-bottom:6px;border:1px solid ${frio?'#F09595':'var(--border)'}">
+          <div style="font-size:12px;font-weight:500;margin-bottom:4px">${l.empresa}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:4px">
+              <div style="width:16px;height:16px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600">${ini}</div>
+              <span style="font-size:10px;color:var(--muted)">${fmtValor(l.valor)}</span>
+            </div>
+            <span style="font-size:10px;color:${frio?'var(--red)':'var(--muted)'}">${dias===0?'Hoy':dias===1?'Ayer':dias+'d'}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderImportarVendedores(){
+  const sel = document.getElementById('imp-vendedor');
+  if(!sel) return;
+  sel.innerHTML = `<option value="">— Selecciona —</option>${Object.keys(USERS_LIVE).map(n=>`<option value="${n}">${n}</option>`).join('')}`;
+  // También actualizar filtro de vendedor en todos-leads
+  const fv = document.getElementById('admin-filter-vendedor');
+  if(fv) fv.innerHTML = `<option value="">Todos los vendedores</option>${Object.keys(USERS_LIVE).map(n=>`<option value="${n}">${n}</option>`).join('')}`;
+}
+
+let importHistorial = [];
+async function importarProspecto(){
+  const empresa = document.getElementById('imp-empresa').value.trim();
+  const vendedor = document.getElementById('imp-vendedor').value;
+  if(!empresa){ showToast('El nombre de la empresa es requerido','⚠️'); return; }
+  if(!vendedor){ showToast('Selecciona un vendedor','⚠️'); return; }
+  const lead = {
+    id: uid(),
+    empresa,
+    contacto: document.getElementById('imp-contacto').value.trim(),
+    telefono: document.getElementById('imp-telefono').value.trim(),
+    email: document.getElementById('imp-email').value.trim(),
+    web: '',
+    etapa: 'Prospecto',
+    temperatura: '~ Tibio',
+    fuente: 'Directorio MENLUN',
+    valor: document.getElementById('imp-valor').value||'0',
+    responsable: vendedor,
+    ultimo_movimiento: hoy(),
+    notas: [
+      document.getElementById('imp-giro').value.trim(),
+      document.getElementById('imp-ubicacion').value.trim(),
+      document.getElementById('imp-notas').value.trim()
+    ].filter(Boolean).join(' · '),
+    seguimientos: []
+  };
+  setLoading(true, 'Importando prospecto...');
+  const r = await apiPost('upsert','prospectos', lead);
+  setLoading(false);
+  if(r.ok){
+    leads.push(lead);
+    importHistorial.unshift({ empresa, vendedor, fecha: hoy() });
+    limpiarImportacion();
+    renderHistorial();
+    renderAll();
+    showToast(`${empresa} importado como lead de ${vendedor} ✓`);
+  } else {
+    showToast('Error al importar: '+r.error,'⚠️');
+  }
+}
+
+function limpiarImportacion(){
+  ['imp-empresa','imp-contacto','imp-telefono','imp-email','imp-giro','imp-ubicacion','imp-valor','imp-notas'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  const sel = document.getElementById('imp-vendedor'); if(sel) sel.value='';
+}
+
+function renderHistorial(){
+  const el = document.getElementById('imp-historial');
+  if(!el) return;
+  if(!importHistorial.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px">Sin importaciones recientes en esta sesión.</div>'; return; }
+  el.innerHTML = importHistorial.slice(0,5).map(h=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <span style="font-weight:500">${h.empresa}</span>
+      <span style="color:var(--muted)">→ ${h.vendedor}</span>
+      <span style="color:var(--muted);margin-left:auto">${fmtFecha(h.fecha)}</span>
+    </div>
+  `).join('');
+}
+
 
 function renderAdminUsers(){
   const allNames = Object.keys(USERS_LIVE);
@@ -1880,21 +2202,29 @@ async function ejecutarMigrar(tipo){
 function renderAdminLeads(filtro=''){
   const list = document.getElementById('admin-leads-list');
   if(!list) return;
-  const all = leads.filter(l=>!filtro||l.empresa.toLowerCase().includes(filtro.toLowerCase())||l.responsable?.toLowerCase().includes(filtro.toLowerCase()));
+  const vendedorFiltro = document.getElementById('admin-filter-vendedor')?.value||'';
+  const all = leads.filter(l=>{
+    const matchFiltro = !filtro||l.empresa.toLowerCase().includes(filtro.toLowerCase())||l.responsable?.toLowerCase().includes(filtro.toLowerCase());
+    const matchVendedor = !vendedorFiltro||l.responsable===vendedorFiltro;
+    return matchFiltro && matchVendedor;
+  });
   if(!all.length){ list.innerHTML='<div class="empty-state">Sin leads</div>'; return; }
   list.innerHTML = all.map(l=>{
     const dias = diasDesde(l.ultimo_movimiento);
     const [bc] = dias<=3?['badge-green']:dias<=7?['badge-amber']:['badge-red'];
     const col = AV_COLORS[l.responsable]||'#444';
-    return `<div class="card" style="margin-bottom:6px">
+    const etapaCls={'Prospecto':'badge-gray','Contactado':'badge-blue','Propuesta':'badge-amber','Negociación':'badge-amber','Cerrado ganado':'badge-green','Cerrado perdido':'badge-red'};
+    return `<div class="card" style="margin-bottom:6px${diasDesde(l.ultimo_movimiento)>=7?';border-color:#F09595':''}">
       <div style="padding:10px 14px;display:flex;align-items:center;gap:10px">
         <div class="avatar" style="background:${col};color:#fff;font-size:10px;flex-shrink:0">${USERS_LIVE[l.responsable]?.initials||'?'}</div>
         <div style="flex:1;min-width:0">
           <div class="fw500" style="font-size:13px">${l.empresa}</div>
-          <div class="muted">${l.responsable||'—'} · ${l.etapa} · ${fmtValor(l.valor)}</div>
+          <div class="muted">${l.responsable||'—'} · ${fmtValor(l.valor)}</div>
         </div>
+        <span class="badge ${etapaCls[l.etapa]||'badge-gray'}">${l.etapa}</span>
         <span class="badge ${bc}">${dias===0?'Hoy':dias===1?'Ayer':'Hace '+dias+'d'}</span>
         <button onclick="abrirReasignarLead('${l.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:var(--muted)">Reasignar</button>
+        <button onclick="abrirEditarLead('${l.id}')" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:var(--muted)">Editar</button>
       </div>
     </div>`;
   }).join('');
