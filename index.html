@@ -311,7 +311,7 @@ textarea{resize:vertical;min-height:70px}
     <!-- ══ REPORTES ══ -->
     <div id="panel-reportes" class="panel">
       <!-- Barra superior -->
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px">
         <div style="font-size:12px;color:var(--muted)">Todo el equipo · Solo lectura · <span id="rep-update"></span> <button class="btn btn-sm btn-ghost" onclick="cargarDatos()" style="margin-left:8px">↻ Actualizar</button></div>
         <div style="display:flex;align-items:center;gap:8px">
           <label style="font-size:11px;margin:0">📅 Período:</label>
@@ -319,45 +319,76 @@ textarea{resize:vertical;min-height:70px}
           <button class="btn btn-sm" onclick="exportarExcel()" style="background:#0F6E56;display:flex;align-items:center;gap:5px">⬇ Exportar Excel</button>
         </div>
       </div>
-
-      <!-- KPIs globales (siempre) -->
+      <!-- KPIs globales siempre visibles -->
       <div class="g4 mb16">
         <div class="kpi" style="border-color:#B3DFF5"><div class="kpi-n text-green" id="rk-pipeline">$0</div><div class="kpi-l">Pipeline total</div></div>
         <div class="kpi"><div class="kpi-n" id="rk-leads">0</div><div class="kpi-l">Leads activos</div></div>
         <div class="kpi" style="border-color:#F09595"><div class="kpi-n text-red" id="rk-frios">0</div><div class="kpi-l">Leads fríos</div></div>
         <div class="kpi" style="border-color:#FAC775"><div class="kpi-n text-amber" id="rk-cxc">0</div><div class="kpi-l">Cuentas por cobrar</div></div>
       </div>
-
-      <!-- KPIs mensuales -->
-      <div class="card mb16" style="padding:16px">
-        <div class="section-title" id="rep-mes-titulo">Actividad del mes</div>
-        <div class="g4" style="grid-template-columns:repeat(5,1fr);gap:10px" id="rep-kpis-mes">
-          <div class="kpi" style="padding:12px"><div class="kpi-n" id="mk-cotiz">0</div><div class="kpi-l">Cotizaciones</div></div>
-          <div class="kpi" style="padding:12px"><div class="kpi-n" id="mk-odc">0</div><div class="kpi-l">ODCs recibidas</div></div>
-          <div class="kpi" style="padding:12px"><div class="kpi-n" id="mk-fact">0</div><div class="kpi-l">Facturas emitidas</div></div>
-          <div class="kpi" style="padding:12px;border-color:#B3DFF5"><div class="kpi-n text-green" id="mk-monto">$0</div><div class="kpi-l">Monto facturado</div></div>
-          <div class="kpi" style="padding:12px;border-color:#C3E6CB"><div class="kpi-n" style="color:#0F6E56" id="mk-pagos">$0</div><div class="kpi-l">Cobrado en el mes</div></div>
+      <!-- TABS de vista -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto">
+        <button onclick="switchRepTab('resumen')" id="rtab-resumen" class="atab atab-active">📊 Resumen</button>
+        <button onclick="switchRepTab('kanban')" id="rtab-kanban" class="atab">🗂 Kanban</button>
+        <button onclick="switchRepTab('gantt')" id="rtab-gantt" class="atab">📋 Gantt</button>
+        <button onclick="switchRepTab('calendario')" id="rtab-calendario" class="atab">📅 Calendario</button>
+      </div>
+      <!-- TAB: RESUMEN -->
+      <div id="rpanel-resumen">
+        <div class="card mb16" style="padding:16px">
+          <div class="section-title" id="rep-mes-titulo">Actividad del mes</div>
+          <div class="g4" style="grid-template-columns:repeat(5,1fr);gap:10px">
+            <div class="kpi" style="padding:12px"><div class="kpi-n" id="mk-cotiz">0</div><div class="kpi-l">Cotizaciones</div></div>
+            <div class="kpi" style="padding:12px"><div class="kpi-n" id="mk-odc">0</div><div class="kpi-l">ODCs recibidas</div></div>
+            <div class="kpi" style="padding:12px"><div class="kpi-n" id="mk-fact">0</div><div class="kpi-l">Facturas emitidas</div></div>
+            <div class="kpi" style="padding:12px;border-color:#B3DFF5"><div class="kpi-n text-green" id="mk-monto">$0</div><div class="kpi-l">Monto facturado</div></div>
+            <div class="kpi" style="padding:12px;border-color:#C3E6CB"><div class="kpi-n" style="color:#0F6E56" id="mk-pagos">$0</div><div class="kpi-l">Cobrado en el mes</div></div>
+          </div>
+        </div>
+        <div class="card mb16" style="padding:16px">
+          <div class="section-title" id="rep-ciclo-titulo">Ciclo comercial</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">🔵 Completado en el mes seleccionado &nbsp;·&nbsp; ⚫ Otro momento &nbsp;·&nbsp; ○ Pendiente</div>
+          <div id="rep-ciclo"></div>
+        </div>
+        <div class="card mb16">
+          <div class="rep-row rep-head" style="grid-template-columns:28px 1fr 60px 90px 70px">
+            <span></span><span>Ingeniero</span><span>Leads</span><span>Último mov.</span><span>Estatus</span>
+          </div>
+          <div id="rep-equipo"></div>
+        </div>
+        <div class="card" style="border-color:#F09595;padding:16px">
+          <div class="section-title" style="color:var(--red)">⚠️ Requieren atención</div>
+          <div id="rep-alertas"></div>
         </div>
       </div>
-
-      <!-- Ciclo comercial global filtrado por mes -->
-      <div class="card mb16" style="padding:16px">
-        <div class="section-title" id="rep-ciclo-titulo">Ciclo comercial — todos los clientes</div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">🔵 Pasos completados en el mes seleccionado &nbsp;·&nbsp; ⚫ Completados en otro momento &nbsp;·&nbsp; ○ Pendiente</div>
-        <div id="rep-ciclo"></div>
+      <!-- TAB: KANBAN -->
+      <div id="rpanel-kanban" style="display:none">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pipeline visual de todos los leads del equipo agrupados por etapa</div>
+        <div id="rep-kanban-board" style="display:grid;grid-template-columns:repeat(5,minmax(160px,1fr));gap:10px;overflow-x:auto;padding-bottom:8px"></div>
       </div>
-
-      <!-- Equipo -->
-      <div class="card mb16">
-        <div class="rep-row rep-head" style="grid-template-columns:28px 1fr 60px 90px 70px">
-          <span></span><span>Ingeniero</span><span>Leads</span><span>Último mov.</span><span>Estatus</span>
+      <!-- TAB: GANTT -->
+      <div id="rpanel-gantt" style="display:none">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Línea de tiempo del ciclo comercial por cliente — cada barra muestra la duración entre cotización y pago</div>
+        <div class="card" style="padding:16px;overflow-x:auto">
+          <div id="rep-gantt-chart"></div>
         </div>
-        <div id="rep-equipo"></div>
       </div>
-      <!-- Alertas globales -->
-      <div class="card" style="border-color:#F09595;padding:16px">
-        <div class="section-title" style="color:var(--red)">⚠️ Requieren atención</div>
-        <div id="rep-alertas"></div>
+      <!-- TAB: CALENDARIO -->
+      <div id="rpanel-calendario" style="display:none">
+        <div id="rep-calendario-nav" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <button onclick="navCalendario(-1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;cursor:pointer;font-family:var(--font);font-size:13px">← Anterior</button>
+          <div id="rep-cal-titulo" style="font-size:14px;font-weight:600"></div>
+          <button onclick="navCalendario(1)" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 14px;cursor:pointer;font-family:var(--font);font-size:13px">Siguiente →</button>
+        </div>
+        <div class="card" style="padding:16px">
+          <div id="rep-calendario"></div>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--muted)">
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00AEEF;margin-right:4px"></span>Cita programada</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--amber);margin-right:4px"></span>Fecha de pago</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--accent);margin-right:4px"></span>Próxima acción</span>
+          <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--red);margin-right:4px"></span>Pago vencido</span>
+        </div>
       </div>
     </div>
 
@@ -842,8 +873,7 @@ let USERS_LIVE = {
   'Jesús':{initials:'JE'},'Daniel':{initials:'DA'},'Ma. Teresa':{initials:'MT'},
   'Arturo':{initials:'AR'}
 };
-// USERS como alias para compatibilidad con código existente
-const USERS = USERS_LIVE;
+// USERS_LIVE es la fuente única de verdad para usuarios del sistema
 
 const AV_COLORS = {
   'Administrador':'#0D1F3C',
@@ -1048,10 +1078,12 @@ function switchTab(tab){
 }
 
 function switchModalTab(tab, btn){
-  document.querySelectorAll('.modal-tab').forEach(b=>b.classList.remove('active'));
+  // Scopear solo al modal que contiene este botón, no todos los modales
+  const modal = btn.closest('.modal');
+  modal.querySelectorAll('.modal-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  document.querySelectorAll('.modal-panel').forEach(p=>p.classList.remove('active'));
-  document.getElementById('mtab-'+tab).classList.add('active');
+  modal.querySelectorAll('.modal-panel').forEach(p=>p.classList.remove('active'));
+  modal.querySelector('#mtab-'+tab)?.classList.add('active');
 }
 
 // ══════════════════════════════════════════
@@ -1148,11 +1180,13 @@ async function eliminarLead(id){
 }
 
 function renderLeads(filtro=''){
-  const ml = myLeads().filter(l=>!filtro||l.empresa.toLowerCase().includes(filtro.toLowerCase())||l.contacto?.toLowerCase().includes(filtro.toLowerCase()));
+  const todosLeads = myLeads();
+  const ml = todosLeads.filter(l=>!filtro||l.empresa.toLowerCase().includes(filtro.toLowerCase())||l.contacto?.toLowerCase().includes(filtro.toLowerCase()));
   const list = document.getElementById('leads-list');
+  // KPIs siempre sobre TODOS los leads del usuario (no sobre el filtro de búsqueda)
   let tv=0,ep=0,fr=0;
-  ml.forEach(l=>{ const v=parseFloat(l.valor||0); if(!isNaN(v)&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido')tv+=v; if(l.etapa==='Propuesta'||l.etapa==='Negociación')ep++; if(diasDesde(l.ultimo_movimiento)>=7&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido')fr++; });
-  document.getElementById('kl-total').textContent=ml.length;
+  todosLeads.forEach(l=>{ const v=parseFloat(l.valor||0); if(!isNaN(v)&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido')tv+=v; if(l.etapa==='Propuesta'||l.etapa==='Negociación')ep++; if(diasDesde(l.ultimo_movimiento)>=7&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido')fr++; });
+  document.getElementById('kl-total').textContent=todosLeads.length;
   document.getElementById('kl-propuesta').textContent=ep;
   document.getElementById('kl-frios').textContent=fr;
   document.getElementById('kl-valor').textContent=fmtValor(tv);
@@ -1231,13 +1265,15 @@ async function guardarSeguimiento(){
   closeModal('modal-seg');
 
   if(tipo==='lead'){
-    const l=leads.find(x=>x.id===id); if(!l) return;
+    const l=leads.find(x=>x.id===id);
+    if(!l){ setLoading(false); return; }
     if(!l.seguimientos) l.seguimientos=[];
     l.seguimientos.push(seg);
     l.ultimo_movimiento=hoy();
     await apiPost('upsert','prospectos',l);
   } else {
-    const c=clientes.find(x=>x.id===id); if(!c) return;
+    const c=clientes.find(x=>x.id===id);
+    if(!c){ setLoading(false); return; }
     if(!c.seguimientos) c.seguimientos=[];
     c.seguimientos.push(seg);
     c.ultimo_contacto=hoy();
@@ -1262,9 +1298,10 @@ function abrirNuevoCliente(){
    'nc-capacitacion','nc-notas','nc-cotizacion-fecha','nc-odc-fecha','nc-factura-fecha',
    'nc-factura-monto','nc-pago-fecha-val','nc-pago-val'].forEach(id=>document.getElementById(id).value='');
   ['nc-cotizacion','nc-odc','nc-factura','nc-pago-fecha','nc-cxc','nc-pago'].forEach(id=>document.getElementById(id).checked=false);
-  // Reset tabs
-  document.querySelectorAll('.modal-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
-  document.querySelectorAll('.modal-panel').forEach((p,i)=>p.classList.toggle('active',i===0));
+  // Reset tabs — scoped al modal de clientes
+  const mCliente = document.getElementById('modal-nuevo-cliente');
+  mCliente.querySelectorAll('.modal-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  mCliente.querySelectorAll('.modal-panel').forEach((p,i)=>p.classList.toggle('active',i===0));
   openModal('modal-nuevo-cliente');
 }
 
@@ -1295,8 +1332,9 @@ function abrirEditarCliente(id){
   document.getElementById('nc-cxc').checked=!!ciclo.cxc;
   document.getElementById('nc-pago').checked=!!ciclo.pago;
   document.getElementById('nc-pago-val').value=ciclo.pago_val||'';
-  document.querySelectorAll('.modal-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
-  document.querySelectorAll('.modal-panel').forEach((p,i)=>p.classList.toggle('active',i===0));
+  const mClienteE = document.getElementById('modal-nuevo-cliente');
+  mClienteE.querySelectorAll('.modal-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+  mClienteE.querySelectorAll('.modal-panel').forEach((p,i)=>p.classList.toggle('active',i===0));
   openModal('modal-nuevo-cliente');
 }
 
@@ -1419,16 +1457,18 @@ function cicloEstatus(ciclo){
 }
 
 function renderClientes(filtro=''){
-  const mc=myClientes().filter(c=>!filtro||c.empresa.toLowerCase().includes(filtro.toLowerCase())||c.contacto?.toLowerCase().includes(filtro.toLowerCase()));
+  const todosClientes=myClientes();
+  const mc=todosClientes.filter(c=>!filtro||c.empresa.toLowerCase().includes(filtro.toLowerCase())||c.contacto?.toLowerCase().includes(filtro.toLowerCase()));
+  // KPIs siempre sobre TODOS los clientes del usuario (no sobre el filtro de búsqueda)
   let odcP=0,cxcC=0,cobrado=0;
   const hoyRc=new Date(); const mesRc=hoyRc.getMonth(); const añoRc=hoyRc.getFullYear();
-  mc.forEach(c=>{
+  todosClientes.forEach(c=>{
     const ciclo=c.ciclo||{};
     if(ciclo.cotizacion&&!ciclo.odc) odcP++;
     if(ciclo.cxc&&!ciclo.pago) cxcC++;
     if(ciclo.pago&&ciclo.factura_monto&&fechaEnMes(ciclo.pago_val,añoRc,mesRc)) cobrado+=parseFloat(ciclo.factura_monto||0);
   });
-  document.getElementById('kc-total').textContent=mc.length;
+  document.getElementById('kc-total').textContent=todosClientes.length;
   document.getElementById('kc-odc').textContent=odcP;
   document.getElementById('kc-cxc').textContent=cxcC;
   document.getElementById('kc-cobrado').textContent=fmtValor(cobrado);
@@ -1566,8 +1606,8 @@ function mesLabel(y, m){
 }
 function fechaEnMes(fechaStr, y, m){
   if(!fechaStr) return false;
-  const d = new Date(fechaStr);
-  if(isNaN(d)) return false;
+  const d = parseFecha(fechaStr);
+  if(!d||isNaN(d)) return false;
   return d.getFullYear()===y && d.getMonth()===m;
 }
 
@@ -1583,7 +1623,7 @@ function poblarSelectMes(){
   clientes.forEach(c=>{
     const ciclo = c.ciclo||{};
     ['cotizacion_fecha','odc_fecha','factura_fecha','pago_fecha_val','pago_val'].forEach(k=>{
-      if(ciclo[k]){ const d=new Date(ciclo[k]); if(!isNaN(d)) todasFechas.push(d); }
+      if(ciclo[k]){ const d=parseFecha(ciclo[k]); if(d&&!isNaN(d)) todasFechas.push(d); }
     });
   });
 
@@ -1613,8 +1653,272 @@ function poblarSelectMes(){
 }
 
 // ══════════════════════════════════════════
-// REPORTES
+// REPORTES — TAB SWITCHER
 // ══════════════════════════════════════════
+const REP_TABS = ['resumen','kanban','gantt','calendario'];
+let _repTabActivo = 'resumen';
+let _calMesOffset = 0; // offset en meses desde hoy para el calendario
+
+function switchRepTab(tab){
+  _repTabActivo = tab;
+  REP_TABS.forEach(t=>{
+    const panel = document.getElementById('rpanel-'+t);
+    const btn   = document.getElementById('rtab-'+t);
+    if(panel) panel.style.display = t===tab ? 'block' : 'none';
+    if(btn)   btn.classList.toggle('atab-active', t===tab);
+  });
+  if(tab==='kanban')    renderRepKanban();
+  if(tab==='gantt')     renderRepGantt();
+  if(tab==='calendario') renderRepCalendario();
+}
+
+// ══════════════════════════════════════════
+// KANBAN (reportes — todos los usuarios)
+// ══════════════════════════════════════════
+function renderRepKanban(){
+  const el = document.getElementById('rep-kanban-board');
+  if(!el) return;
+  const etapas = ['Prospecto','Contactado','Propuesta','Negociación','Cerrado ganado'];
+  const colores = {'Prospecto':'#8A8780','Contactado':'#185FA5','Propuesta':'#854F0B','Negociación':'#533AB7','Cerrado ganado':'#0F6E56'};
+  el.innerHTML = etapas.map(etapa=>{
+    const etapaLeads = leads.filter(l=>l.etapa===etapa);
+    const total = etapaLeads.reduce((s,l)=>s+(parseFloat(l.valor||0)||0),0);
+    return `<div style="background:var(--surface2);border-radius:10px;padding:10px;min-height:160px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid ${colores[etapa]}">
+        <div style="flex:1;font-size:12px;font-weight:600">${etapa}</div>
+        <div style="background:${colores[etapa]};color:#fff;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600">${etapaLeads.length}</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">${fmtValor(total)}</div>
+      ${etapaLeads.map(l=>{
+        const col = AV_COLORS[l.responsable]||'#444';
+        const ini = USERS_LIVE[l.responsable]?.initials||'?';
+        const dias = diasDesde(l.ultimo_movimiento);
+        const frio = dias>=7;
+        return `<div style="background:var(--surface);border-radius:8px;padding:8px 10px;margin-bottom:6px;border:1px solid ${frio?'#F09595':'var(--border)'}">
+          <div style="font-size:12px;font-weight:500;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.empresa}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="display:flex;align-items:center;gap:4px">
+              <div style="width:16px;height:16px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;flex-shrink:0">${ini}</div>
+              <span style="font-size:10px;color:var(--muted)">${fmtValor(l.valor)}</span>
+            </div>
+            <span style="font-size:10px;color:${frio?'var(--red)':'var(--muted)'}">${dias===0?'Hoy':dias===1?'Ayer':dias+'d'}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// GANTT (ciclo comercial por cliente)
+// ══════════════════════════════════════════
+function renderRepGantt(){
+  const el = document.getElementById('rep-gantt-chart');
+  if(!el) return;
+
+  // Recopilar clientes con al menos una fecha en ciclo
+  const clientesCiclo = clientes.filter(c=>{
+    const ciclo = c.ciclo||{};
+    return ciclo.cotizacion_fecha||ciclo.odc_fecha||ciclo.factura_fecha||ciclo.pago_val;
+  });
+
+  if(!clientesCiclo.length){
+    el.innerHTML='<div class="empty-state">Sin fechas de ciclo registradas aún</div>';
+    return;
+  }
+
+  // Determinar rango global de fechas
+  const todasFechas = [];
+  clientesCiclo.forEach(c=>{
+    const ci = c.ciclo||{};
+    [ci.cotizacion_fecha,ci.odc_fecha,ci.factura_fecha,ci.pago_fecha_val,ci.pago_val].forEach(f=>{
+      if(f){ const d=parseFecha(f); if(d&&!isNaN(d)) todasFechas.push(d.getTime()); }
+    });
+  });
+  const msMin = Math.min(...todasFechas);
+  const msMax = Math.max(...todasFechas, Date.now());
+  const rango = msMax - msMin || 1;
+
+  const pasos = [
+    {key:'cotizacion_fecha', label:'Cotiz.', color:'#185FA5'},
+    {key:'odc_fecha',        label:'ODC',    color:'#854F0B'},
+    {key:'factura_fecha',    label:'Fact.',  color:'#533AB7'},
+    {key:'pago_fecha_val',   label:'F.Pago', color:'#EF9F27'},
+    {key:'pago_val',         label:'Pagado', color:'#0F6E56'},
+  ];
+
+  // Cabecera de meses
+  const dMin = new Date(msMin); dMin.setDate(1);
+  const dMax = new Date(msMax); dMax.setDate(1);
+  const mesesHeader = [];
+  let dm = new Date(dMin);
+  while(dm <= dMax){
+    mesesHeader.push({ label: mesLabel(dm.getFullYear(), dm.getMonth()), ms: dm.getTime() });
+    dm.setMonth(dm.getMonth()+1);
+  }
+
+  const pct = ms => Math.max(0, Math.min(100, ((ms - msMin) / rango) * 100));
+
+  el.innerHTML = `
+    <!-- Cabecera de meses -->
+    <div style="display:flex;margin-left:150px;margin-bottom:6px;position:relative;height:18px">
+      ${mesesHeader.map(m=>`
+        <div style="position:absolute;left:${pct(m.ms)}%;font-size:9px;color:var(--muted);white-space:nowrap;transform:translateX(-50%)">${m.label}</div>
+      `).join('')}
+    </div>
+    <!-- Leyenda pasos -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;margin-left:150px">
+      ${pasos.map(p=>`<span style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:50%;background:${p.color};display:inline-block"></span>${p.label}</span>`).join('')}
+    </div>
+    <!-- Filas por cliente -->
+    ${clientesCiclo.map(c=>{
+      const ci = c.ciclo||{};
+      const col = AV_COLORS[c.responsable]||'#444';
+      const ini = USERS_LIVE[c.responsable]?.initials||'?';
+      // Encontrar primera y última fecha para barra base
+      const fechasCliente = pasos.map(p=>ci[p.key]).filter(Boolean).map(f=>parseFecha(f)?.getTime()).filter(Boolean);
+      if(!fechasCliente.length) return '';
+      const fMin = Math.min(...fechasCliente);
+      const fMax = Math.max(...fechasCliente);
+      const left = pct(fMin);
+      const width = Math.max(0.5, pct(fMax) - pct(fMin));
+
+      return `<div style="display:flex;align-items:center;margin-bottom:8px;gap:8px">
+        <div style="width:142px;flex-shrink:0;display:flex;align-items:center;gap:6px;overflow:hidden">
+          <div style="width:20px;height:20px;border-radius:50%;background:${col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;flex-shrink:0">${ini}</div>
+          <div style="min-width:0">
+            <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.empresa}</div>
+            <div style="font-size:9px;color:var(--muted)">${c.responsable}</div>
+          </div>
+        </div>
+        <div style="flex:1;position:relative;height:24px">
+          <!-- Barra de fondo (rango total) -->
+          <div style="position:absolute;top:50%;left:${left}%;width:${width}%;height:6px;transform:translateY(-50%);background:var(--border);border-radius:3px"></div>
+          <!-- Puntos de cada paso -->
+          ${pasos.map(p=>{
+            if(!ci[p.key]) return '';
+            const d = parseFecha(ci[p.key]);
+            if(!d||isNaN(d)) return '';
+            const x = pct(d.getTime());
+            return `<div title="${p.label}: ${fmtFecha(ci[p.key])}" style="position:absolute;left:${x}%;top:50%;transform:translate(-50%,-50%);width:12px;height:12px;border-radius:50%;background:${p.color};border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default"></div>`;
+          }).join('')}
+        </div>
+        <div style="width:90px;flex-shrink:0;text-align:right">
+          ${(()=>{ const [bc,bt]=cicloEstatus(ci); return `<span class="badge ${bc}" style="font-size:10px">${bt}</span>`; })()}
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+// ══════════════════════════════════════════
+// CALENDARIO
+// ══════════════════════════════════════════
+function navCalendario(dir){
+  _calMesOffset += dir;
+  renderRepCalendario();
+}
+
+function renderRepCalendario(){
+  const hoyD = new Date();
+  const año  = new Date(hoyD.getFullYear(), hoyD.getMonth() + _calMesOffset, 1).getFullYear();
+  const mes  = new Date(hoyD.getFullYear(), hoyD.getMonth() + _calMesOffset, 1).getMonth();
+
+  const titulo = document.getElementById('rep-cal-titulo');
+  if(titulo) titulo.textContent = mesLabel(año, mes);
+
+  const el = document.getElementById('rep-calendario');
+  if(!el) return;
+
+  // Recolectar eventos del mes
+  const eventos = {}; // key: 'YYYY-MM-DD' → array de eventos
+
+  const addEvento = (fechaStr, tipo, label, color, icon) => {
+    if(!fechaStr) return;
+    const d = parseFecha(fechaStr);
+    if(!d||isNaN(d)) return;
+    if(d.getFullYear()!==año || d.getMonth()!==mes) return;
+    const key = d.toISOString().split('T')[0];
+    if(!eventos[key]) eventos[key] = [];
+    eventos[key].push({ tipo, label, color, icon });
+  };
+
+  // Próximas citas de clientes
+  clientes.forEach(c=>{
+    if(c.proxima_cita) addEvento(c.proxima_cita.split('T')[0],'cita',`Cita: ${c.empresa} (${c.responsable})`,'#00AEEF','📅');
+  });
+
+  // Fechas de pago programadas
+  clientes.forEach(c=>{
+    const ci = c.ciclo||{};
+    if(ci.pago_fecha_val && !ci.pago){
+      const diasP = diasDesde(ci.pago_fecha_val);
+      const color = diasP>0?'#EF9F27':'#A32D2D';
+      const icon  = diasP>0?'💰':'⚠️';
+      addEvento(ci.pago_fecha_val,'pago',`Pago: ${c.empresa} (${c.responsable})`+(diasP<0?` ← vencido hace ${Math.abs(diasP)}d`:''),color,icon);
+    }
+  });
+
+  // Próximas acciones de leads y clientes (seguimientos con fecha futura en el mes)
+  const agregarAcciones = (lista, tipoLabel) => {
+    lista.forEach(item=>{
+      (item.seguimientos||[]).forEach(s=>{
+        if(s.accion && s.fecha){
+          addEvento(s.fecha,'accion',`${s.accion} — ${item.empresa} (${item.responsable||currentUser?.name||''})`, 'var(--accent)','🎯');
+        }
+      });
+    });
+  };
+  agregarAcciones(leads, 'Lead');
+  agregarAcciones(clientes, 'Cliente');
+
+  // Construir la cuadrícula del calendario
+  const primerDia = new Date(año, mes, 1).getDay(); // 0=Dom
+  const diasEnMes = new Date(año, mes+1, 0).getDate();
+  const hoyStr = hoyD.toISOString().split('T')[0];
+
+  const diasSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  let html = `
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px">
+      ${diasSemana.map(d=>`<div style="text-align:center;font-size:10px;font-weight:600;color:var(--muted);padding:4px 0">${d}</div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">
+  `;
+
+  // Celdas vacías antes del día 1
+  for(let i=0; i<primerDia; i++){
+    html += `<div style="min-height:70px;background:var(--surface2);border-radius:6px;opacity:.3"></div>`;
+  }
+
+  for(let dia=1; dia<=diasEnMes; dia++){
+    const dateStr = `${año}-${String(mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+    const esHoy = dateStr === hoyStr;
+    const evs = eventos[dateStr]||[];
+
+    html += `<div style="min-height:70px;background:${esHoy?'var(--accent-light)':'var(--surface)'};border-radius:6px;padding:5px;border:1px solid ${esHoy?'#00AEEF':'var(--border)'};position:relative">
+      <div style="font-size:11px;font-weight:${esHoy?'700':'500'};color:${esHoy?'var(--accent)':'var(--text)'};margin-bottom:3px">${dia}</div>
+      ${evs.slice(0,3).map(e=>`
+        <div title="${e.label}" style="font-size:9px;background:${e.color}18;color:${e.color};border-radius:3px;padding:1px 4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;border-left:2px solid ${e.color}">
+          ${e.icon} ${e.label}
+        </div>
+      `).join('')}
+      ${evs.length>3?`<div style="font-size:9px;color:var(--muted);text-align:right">+${evs.length-3} más</div>`:''}
+    </div>`;
+  }
+
+  // Rellenar celdas finales para completar la última semana
+  const totalCeldas = primerDia + diasEnMes;
+  const resto = totalCeldas%7 ? 7-(totalCeldas%7) : 0;
+  for(let i=0; i<resto; i++){
+    html += `<div style="min-height:70px;background:var(--surface2);border-radius:6px;opacity:.3"></div>`;
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+
 function renderReportes(){
   document.getElementById('rep-update').textContent='Actualizado: '+new Date().toLocaleTimeString('es-MX');
 
@@ -1705,14 +2009,14 @@ function renderReportes(){
   }
 
   // ── Equipo ──
-  document.getElementById('rep-equipo').innerHTML=Object.keys(USERS).map(name=>{
+  document.getElementById('rep-equipo').innerHTML=Object.keys(USERS_LIVE).map(name=>{
     const uL=leads.filter(l=>l.responsable===name&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido');
     const lastMov=uL.reduce((acc,l)=>(!acc||l.ultimo_movimiento>acc)?l.ultimo_movimiento:acc,null);
     const dias=diasDesde(lastMov);
     let [bc,bt]=dias<=3?['badge-green','Al día']:dias<=7?['badge-amber','Pendiente']:['badge-red','Atención'];
     if(!uL.length){bc='badge-gray';bt='Sin leads';}
     const col=AV_COLORS[name]||'#444';
-    const ini=USERS[name]?.initials||name.slice(0,2).toUpperCase();
+    const ini=USERS_LIVE[name]?.initials||name.slice(0,2).toUpperCase();
     return `<div class="rep-row" style="grid-template-columns:28px 1fr 60px 90px 70px">
       <div class="avatar" style="background:${col};color:#fff;font-size:9px">${ini}</div>
       <div class="fw500">${name}</div>
@@ -1727,6 +2031,11 @@ function renderReportes(){
   leads.forEach(l=>{ if(l.etapa!=='Cerrado'&&diasDesde(l.ultimo_movimiento)>=7) alertas.push({txt:`${l.empresa} — ${l.responsable}`,sub:`Lead sin contacto ${diasDesde(l.ultimo_movimiento)} días`,tipo:'red'}); });
   clientes.forEach(c=>{ const ciclo=c.ciclo||{}; if(ciclo.cxc&&!ciclo.pago) alertas.push({txt:`${c.empresa} — ${c.responsable}`,sub:'Cuenta por cobrar pendiente',tipo:'amber'}); if(ciclo.pago_fecha_val&&diasDesde(ciclo.pago_fecha_val)>=-3&&!ciclo.pago) alertas.push({txt:`${c.empresa} — ${c.responsable}`,sub:'Pago vence pronto: '+fmtFecha(ciclo.pago_fecha_val),tipo:'red'}); });
   document.getElementById('rep-alertas').innerHTML=alertas.length?alertas.map(a=>`<div class="alert-item"><div class="alert-dot" style="background:${a.tipo==='red'?'var(--red)':'#EF9F27'}"></div><div><div class="fw500">${a.txt}</div><div class="muted">${a.sub}</div></div></div>`).join(''):'<div class="muted" style="text-align:center;padding:16px">Sin alertas activas ✓</div>';
+
+  // Refrescar el tab activo si no es resumen
+  if(_repTabActivo==='kanban')     renderRepKanban();
+  if(_repTabActivo==='gantt')      renderRepGantt();
+  if(_repTabActivo==='calendario') renderRepCalendario();
 }
 
 // ══════════════════════════════════════════
@@ -1788,7 +2097,7 @@ function _generarExcel(){
 
   // ── Hoja 3: Equipo ──
   const filasEquipo=[['Ingeniero','Leads activos','Último movimiento','Estatus']];
-  Object.keys(USERS).forEach(name=>{
+  Object.keys(USERS_LIVE).forEach(name=>{
     const uL=leads.filter(l=>l.responsable===name&&l.etapa!=='Cerrado ganado'&&l.etapa!=='Cerrado perdido');
     const lastMov=uL.reduce((acc,l)=>(!acc||l.ultimo_movimiento>acc)?l.ultimo_movimiento:acc,null);
     const dias=diasDesde(lastMov);
@@ -1933,7 +2242,9 @@ function renderAlertasGlobal(){
     const ciclo = c.ciclo||{};
     if(ciclo.cxc&&!ciclo.pago) alertas.push({ txt:c.empresa, sub:`Cuenta por cobrar pendiente · ${c.responsable}`, tipo:'amber', icon:'💰' });
     if(ciclo.pago_fecha_val&&!ciclo.pago){
-      const diasPago = Math.floor((new Date(ciclo.pago_fecha_val)-new Date())/86400000);
+      const dPago = parseFecha(ciclo.pago_fecha_val);
+      const ahora = new Date(); ahora.setHours(12,0,0,0);
+      const diasPago = dPago ? Math.floor((dPago-ahora)/86400000) : 999;
       if(diasPago<=3) alertas.push({ txt:c.empresa, sub:`Pago vence ${diasPago<0?'hace '+Math.abs(diasPago)+' días':'en '+diasPago+' días'} · ${c.responsable}`, tipo:'red', icon:'📅' });
     }
   });
