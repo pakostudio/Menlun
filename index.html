@@ -174,6 +174,18 @@ textarea{resize:vertical;min-height:70px}
 .atab:hover{color:var(--text)}
 .atab-active{color:var(--accent);border-bottom-color:var(--accent)}
 .fw500{font-weight:500}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1C1A17;color:#fff;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;z-index:400;box-shadow:0 4px 20px rgba(0,0,0,0.25);transition:transform .3s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast-icon{font-size:14px}
+
+/* MIGRAR CHECKBOXES */
+.migrar-check-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);margin-bottom:6px;background:var(--bg);cursor:pointer;transition:border-color .15s}
+.migrar-check-item:hover{border-color:var(--accent)}
+.migrar-check-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);flex-shrink:0;cursor:pointer}
+.migrar-check-item label{margin:0;text-transform:none;letter-spacing:0;font-size:13px;color:var(--text);font-weight:500;cursor:pointer;flex:1}
+.migrar-check-item .muted{font-size:11px}
 </style>
 </head>
 <body>
@@ -472,29 +484,52 @@ textarea{resize:vertical;min-height:70px}
 
       <!-- TAB: MIGRAR -->
       <div id="apanel-migrar" style="display:none">
-        <div class="card" style="padding:16px">
-          <div class="section-title">🔄 Migrar leads y clientes entre usuarios</div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Mueve todos los registros de un usuario a otro. Útil cuando alguien deja el equipo.</div>
-          <div class="g2">
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <div class="section-title">🔄 Migrar registros entre usuarios</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Selecciona el usuario origen y destino. Elige individualmente qué leads y/o clientes deseas mover.</div>
+          <div class="g2" style="margin-bottom:16px">
             <div>
               <label>Usuario origen (de quién mover)</label>
-              <select id="migrar-origen" onchange="previewMigrar()" style="margin-bottom:8px">
+              <select id="migrar-origen" onchange="cargarListaMigrar()" style="margin-bottom:0">
                 <option value="">— Selecciona —</option>
               </select>
-              <div id="migrar-preview" style="background:var(--surface2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--muted);min-height:40px"></div>
             </div>
             <div>
               <label>Usuario destino (a quién mover)</label>
-              <select id="migrar-destino" style="margin-bottom:8px">
+              <select id="migrar-destino" style="margin-bottom:0">
                 <option value="">— Selecciona —</option>
               </select>
-              <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
-                <button class="btn btn-sm" onclick="ejecutarMigrar('leads')" style="background:#185FA5">Migrar solo Leads</button>
-                <button class="btn btn-sm" onclick="ejecutarMigrar('clientes')" style="background:#0F6E56">Migrar solo Clientes</button>
-                <button class="btn btn-sm" onclick="ejecutarMigrar('ambos')">Migrar Todo</button>
-              </div>
             </div>
           </div>
+          <div id="migrar-lista-wrap" style="display:none">
+            <div id="migrar-seccion-leads" style="margin-bottom:14px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Leads (<span id="migrar-count-leads">0</span>)</div>
+                <div style="display:flex;gap:8px">
+                  <button onclick="seleccionarTodosMigrar('leads',true)" style="background:none;border:none;font-size:11px;color:var(--accent);cursor:pointer;padding:0">Seleccionar todos</button>
+                  <span style="color:var(--border)">|</span>
+                  <button onclick="seleccionarTodosMigrar('leads',false)" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0">Ninguno</button>
+                </div>
+              </div>
+              <div id="migrar-leads-list"></div>
+            </div>
+            <div id="migrar-seccion-clientes">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Clientes (<span id="migrar-count-clientes">0</span>)</div>
+                <div style="display:flex;gap:8px">
+                  <button onclick="seleccionarTodosMigrar('clientes',true)" style="background:none;border:none;font-size:11px;color:var(--accent);cursor:pointer;padding:0">Seleccionar todos</button>
+                  <span style="color:var(--border)">|</span>
+                  <button onclick="seleccionarTodosMigrar('clientes',false)" style="background:none;border:none;font-size:11px;color:var(--muted);cursor:pointer;padding:0">Ninguno</button>
+                </div>
+              </div>
+              <div id="migrar-clientes-list"></div>
+            </div>
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-sm" onclick="ejecutarMigrarSeleccionados()">Migrar seleccionados</button>
+              <div id="migrar-resumen-sel" style="font-size:12px;color:var(--muted)">Ningún registro seleccionado</div>
+            </div>
+          </div>
+          <div id="migrar-empty" style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Selecciona un usuario origen para ver sus registros</div>
         </div>
       </div>
 
@@ -827,10 +862,14 @@ let clientes = [];
 // ══════════════════════════════════════════
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 function hoy(){ return new Date().toISOString().split('T')[0]; }
-function diasDesde(f){ if(!f)return 999; const d=new Date(f);d.setHours(0,0,0,0);const h=new Date();h.setHours(0,0,0,0);return Math.floor((h-d)/86400000); }
-function fmtFecha(f){ if(!f)return '—'; return new Date(f).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}); }
+// Fix UTC off-by-one: parsear fechas YYYY-MM-DD al mediodía local para evitar desfase horario
+function parseFecha(f){ if(!f) return null; if(f.includes('T')) return new Date(f); return new Date(f+'T12:00:00'); }
+function diasDesde(f){ if(!f)return 999; const d=parseFecha(f); if(!d||isNaN(d))return 999; d.setHours(12,0,0,0); const h=new Date(); h.setHours(12,0,0,0); return Math.floor((h-d)/86400000); }
+function fmtFecha(f){ if(!f)return '—'; const d=parseFecha(f); if(!d||isNaN(d))return '—'; return d.toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}); }
 function fmtValor(v){ if(!v||isNaN(v))return '$0'; const n=parseFloat(v); if(n>=1000000)return '$'+(n/1000000).toFixed(1)+'M'; if(n>=1000)return '$'+Math.round(n/1000)+'k'; return '$'+n; }
 function canalIcon(c){ return {'Llamada':'📞','WhatsApp':'💬','Email':'✉️','Visita':'🤝','Video':'📹'}[c]||'📌'; }
+// Temperatura derivada — sin mutar el objeto original
+function tempEfectiva(l){ return diasDesde(l.ultimo_movimiento)>=7 ? '❄️ Frío' : (l.temperatura||'~ Tibio'); }
 
 let _toastTimer=null;
 function showToast(msg='Guardado correctamente', icon='✓'){
@@ -1122,16 +1161,16 @@ function renderLeads(filtro=''){
 
   const etapaCls={'Prospecto':'badge-gray','Contactado':'badge-blue','Propuesta':'badge-amber','Negociación':'badge-amber','Cerrado ganado':'badge-green','Cerrado perdido':'badge-red'};
   list.innerHTML = ml.map(l=>{
-    // Temperatura automática: si +7 días sin contacto → ❄️ Frío
+    // Temperatura derivada sin mutar el objeto
     const dias=diasDesde(l.ultimo_movimiento), frio=dias>=7;
-    if(frio && l.temperatura !== '❄️ Frío') l.temperatura = '❄️ Frío';
+    const temp=tempEfectiva(l);
     const segs=(l.seguimientos||[]).slice(-3).reverse();
     return `<div class="card" ${frio?'style="border-color:#F09595"':''}>
       <div class="card-head" onclick="toggleCard('lead-${l.id}')">
         <div><div class="fw500">${l.empresa}</div>
         <div class="muted">${l.contacto||''}${l.telefono?' · '+l.telefono:''}${frio?' <span style="color:var(--red)">· Sin contacto '+dias+' días ⚠️</span>':''}</div></div>
         <div style="display:flex;align-items:center;gap:6px">
-          <span style="font-size:12px">${l.temperatura||''}</span>
+          <span style="font-size:12px">${temp}</span>
           <span class="badge ${etapaCls[l.etapa]||'badge-gray'}">${l.etapa}</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted)"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
@@ -1808,7 +1847,11 @@ function switchAdminTab(tab){
   });
   if(tab==='overview') renderAdminOverview();
   if(tab==='kanban') renderAdminKanban();
-  if(tab==='todos-leads') renderAdminLeads();
+  if(tab==='todos-leads'){ 
+    const fv=document.getElementById('admin-filter-vendedor'); 
+    if(fv) fv.value=''; 
+    renderAdminLeads(); 
+  }
   if(tab==='todos-clientes') renderAdminClientes();
 }
 
@@ -2163,38 +2206,118 @@ function renderMigrarSelects(){
   });
 }
 
-function previewMigrar(){
+// Carga la lista de registros del usuario origen con checkboxes individuales
+function cargarListaMigrar(){
   const origen = document.getElementById('migrar-origen').value;
-  const preview = document.getElementById('migrar-preview');
-  if(!origen||!preview){ if(preview) preview.textContent=''; return; }
-  const nL = leads.filter(l=>l.responsable===origen).length;
-  const nC = clientes.filter(c=>c.responsable===origen).length;
-  preview.innerHTML = `<b>${nL}</b> leads · <b>${nC}</b> clientes asignados a <b>${origen}</b>`;
+  const wrap   = document.getElementById('migrar-lista-wrap');
+  const empty  = document.getElementById('migrar-empty');
+
+  if(!origen){ wrap.style.display='none'; empty.style.display='block'; return; }
+
+  const uLeads    = leads.filter(l=>l.responsable===origen);
+  const uClientes = clientes.filter(c=>c.responsable===origen);
+
+  document.getElementById('migrar-count-leads').textContent    = uLeads.length;
+  document.getElementById('migrar-count-clientes').textContent = uClientes.length;
+
+  // Render leads checkboxes
+  const listL = document.getElementById('migrar-leads-list');
+  if(!uLeads.length){
+    listL.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px 0">Sin leads asignados</div>';
+  } else {
+    listL.innerHTML = uLeads.map(l=>{
+      const etapaCls={'Prospecto':'badge-gray','Contactado':'badge-blue','Propuesta':'badge-amber','Negociación':'badge-amber','Cerrado ganado':'badge-green','Cerrado perdido':'badge-red'};
+      return `<div class="migrar-check-item" onclick="toggleMigrarCheck('ml-${l.id}')">
+        <input type="checkbox" id="ml-${l.id}" data-id="${l.id}" data-tipo="lead" onchange="actualizarResumenMigrar()" onclick="event.stopPropagation()">
+        <div style="flex:1">
+          <label for="ml-${l.id}" style="font-size:13px;font-weight:500;cursor:pointer">${l.empresa}</label>
+          <div class="muted">${l.contacto||'—'} · ${fmtValor(l.valor)}</div>
+        </div>
+        <span class="badge ${etapaCls[l.etapa]||'badge-gray'}" style="flex-shrink:0">${l.etapa}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Render clientes checkboxes
+  const listC = document.getElementById('migrar-clientes-list');
+  if(!uClientes.length){
+    listC.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px 0">Sin clientes asignados</div>';
+  } else {
+    listC.innerHTML = uClientes.map(c=>{
+      const [bc,bt]=cicloEstatus(c.ciclo);
+      return `<div class="migrar-check-item" onclick="toggleMigrarCheck('mc-${c.id}')">
+        <input type="checkbox" id="mc-${c.id}" data-id="${c.id}" data-tipo="cliente" onchange="actualizarResumenMigrar()" onclick="event.stopPropagation()">
+        <div style="flex:1">
+          <label for="mc-${c.id}" style="font-size:13px;font-weight:500;cursor:pointer">${c.empresa}</label>
+          <div class="muted">${c.contacto||'—'} · ${c.servicio||'—'}</div>
+        </div>
+        <span class="badge ${bc}" style="flex-shrink:0">${bt}</span>
+      </div>`;
+    }).join('');
+  }
+
+  wrap.style.display  = 'block';
+  empty.style.display = 'none';
+  actualizarResumenMigrar();
 }
 
-async function ejecutarMigrar(tipo){
-  const origen = document.getElementById('migrar-origen').value;
+function toggleMigrarCheck(checkId){
+  const cb = document.getElementById(checkId);
+  if(cb){ cb.checked = !cb.checked; actualizarResumenMigrar(); }
+}
+
+function seleccionarTodosMigrar(tipo, valor){
+  const tipoData = tipo==='leads' ? 'lead' : 'cliente';
+  document.querySelectorAll(`#migrar-${tipo}-list input[type=checkbox]`).forEach(cb=>cb.checked=valor);
+  actualizarResumenMigrar();
+}
+
+function actualizarResumenMigrar(){
+  const todos = Array.from(document.querySelectorAll('#migrar-leads-list input[type=checkbox]:checked, #migrar-clientes-list input[type=checkbox]:checked'));
+  const nLeads    = todos.filter(c=>c.dataset.tipo==='lead').length;
+  const nClientes = todos.filter(c=>c.dataset.tipo==='cliente').length;
+  const resumen = document.getElementById('migrar-resumen-sel');
+  if(!resumen) return;
+  if(!todos.length){ resumen.textContent='Ningún registro seleccionado'; return; }
+  const partes=[];
+  if(nLeads)    partes.push(`${nLeads} lead${nLeads>1?'s':''}`);
+  if(nClientes) partes.push(`${nClientes} cliente${nClientes>1?'s':''}`);
+  resumen.textContent = `${partes.join(' y ')} seleccionado${todos.length>1?'s':''}`;
+}
+
+async function ejecutarMigrarSeleccionados(){
   const destino = document.getElementById('migrar-destino').value;
-  if(!origen||!destino){ showToast('Selecciona origen y destino','⚠️'); return; }
+  const origen  = document.getElementById('migrar-origen').value;
+  if(!destino){ showToast('Selecciona un usuario destino','⚠️'); return; }
+  if(!origen)  { showToast('Selecciona un usuario origen','⚠️'); return; }
   if(origen===destino){ showToast('Origen y destino son iguales','⚠️'); return; }
 
-  const leadsAfect = tipo!=='clientes' ? leads.filter(l=>l.responsable===origen) : [];
-  const clientesAfect = tipo!=='leads' ? clientes.filter(c=>c.responsable===origen) : [];
-  const total = leadsAfect.length + clientesAfect.length;
+  const seleccionados = Array.from(document.querySelectorAll('#migrar-leads-list input[type=checkbox]:checked, #migrar-clientes-list input[type=checkbox]:checked'));
+  if(!seleccionados.length){ showToast('Selecciona al menos un registro','⚠️'); return; }
 
-  if(!total){ showToast(`${origen} no tiene registros del tipo seleccionado`,'⚠️'); return; }
-  if(!confirm(`¿Migrar ${leadsAfect.length} leads y ${clientesAfect.length} clientes de ${origen} → ${destino}?`)) return;
+  const idsLeads    = seleccionados.filter(c=>c.dataset.tipo==='lead').map(c=>c.dataset.id);
+  const idsClientes = seleccionados.filter(c=>c.dataset.tipo==='cliente').map(c=>c.dataset.id);
+
+  const nL=idsLeads.length, nC=idsClientes.length;
+  const partes=[];
+  if(nL) partes.push(`${nL} lead${nL>1?'s':''}`);
+  if(nC) partes.push(`${nC} cliente${nC>1?'s':''}`);
+  if(!confirm(`¿Migrar ${partes.join(' y ')} de ${origen} → ${destino}?`)) return;
 
   setLoading(true, 'Migrando registros...');
-  let ok = 0, err = 0;
+  let ok=0, err=0;
 
-  for(const l of leadsAfect){
-    const updated = {...l, responsable: destino};
+  for(const id of idsLeads){
+    const l = leads.find(x=>x.id===id);
+    if(!l) continue;
+    const updated = {...l, responsable:destino};
     const r = await apiPost('upsert','prospectos', updated);
     if(r.ok){ l.responsable=destino; ok++; } else err++;
   }
-  for(const c of clientesAfect){
-    const updated = {...c, responsable: destino};
+  for(const id of idsClientes){
+    const c = clientes.find(x=>x.id===id);
+    if(!c) continue;
+    const updated = {...c, responsable:destino};
     const r = await apiPost('upsert','clientes', updated);
     if(r.ok){ c.responsable=destino; ok++; } else err++;
   }
@@ -2202,8 +2325,13 @@ async function ejecutarMigrar(tipo){
   setLoading(false);
   renderAll();
   renderAdminPanel();
-  showToast(`Migrados ${ok} registros a ${destino}${err?` · ${err} errores`:''}  ✓`);
+  // Recargar la lista del mismo origen para reflejar cambios
+  cargarListaMigrar();
+  showToast(`Migrados ${ok} registro${ok>1?'s':''}${err?` · ${err} con error`:''}  ✓`);
 }
+
+// Mantener función legacy por si hay referencias externas (no se usa desde UI nueva)
+function previewMigrar(){ cargarListaMigrar(); }
 
 function renderAdminLeads(filtro=''){
   const list = document.getElementById('admin-leads-list');
