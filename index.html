@@ -1028,6 +1028,42 @@ async function cargarDatos(){
   if(isAdmin()) switchTab('admin');
 }
 
+// ══════════════════════════════════════════
+// USUARIOS — persistencia en backend (tab "usuarios")
+// ══════════════════════════════════════════
+// Antes, USERS_LIVE/CLAVES_LIVE solo vivían en memoria del navegador:
+// alta/baja de usuarios se perdía al recargar la página. Ahora se
+// sincronizan contra el Sheet igual que leads y clientes.
+async function cargarUsuarios(){
+  try {
+    const rows = await apiGet('usuarios');
+    if(rows && rows.length){
+      const nu = {}, nc = { Administrador: CLAVES_LIVE['Administrador'] || 'admin2026' };
+      rows.forEach(r=>{
+        const nombre = (r.nombre || r.id || '').trim();
+        if(!nombre || nombre === 'Administrador') return;
+        nu[nombre] = { initials: r.iniciales || nombre.slice(0,2).toUpperCase() };
+        nc[nombre] = r.clave || CLAVE_EQUIPO;
+        if(r.color) AV_COLORS[nombre] = r.color;
+      });
+      USERS_LIVE = nu;
+      CLAVES_LIVE = nc;
+    } else {
+      // Primera vez: la tab "usuarios" no existe o está vacía todavía.
+      // Sembramos el Sheet con la lista actual para que quede persistida.
+      await Promise.all(Object.keys(USERS_LIVE).map(n => apiPost('upsert','usuarios',{
+        id: n, nombre: n, iniciales: USERS_LIVE[n].initials,
+        clave: CLAVES_LIVE[n] || CLAVE_EQUIPO, color: AV_COLORS[n] || ''
+      })));
+    }
+  } catch(e){
+    // Si la tab "usuarios" aún no existe en el backend, seguimos con la
+    // lista local (hardcodeada) para no romper el login.
+    console.error('No se pudo sincronizar usuarios contra el backend, usando lista local', e);
+  }
+  rebuildLoginSelect();
+}
+
 // Compatibilidad con datos v1 que no tienen campo ciclo
 function construirCicloV1(c){
   return {
@@ -1075,6 +1111,11 @@ function doLogin(){
   cargarDatos();
 }
 document.getElementById('login-pin').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+// Al cargar la página (antes de cualquier login), traer la lista real de
+// usuarios/claves del backend para que el selector y la validación del PIN
+// reflejen altas/bajas hechas por el admin, no solo la lista hardcodeada.
+cargarUsuarios();
 
 function doLogout(){
   if(!confirm('¿Cerrar sesión?')) return;
@@ -2199,6 +2240,8 @@ function switchAdminTab(tab){
     renderAdminLeads(); 
   }
   if(tab==='todos-clientes') renderAdminClientes();
+  if(tab==='usuarios'){ renderAdminUsers(); }
+  if(tab==='claves'){ renderAdminClaves(); }
 }
 
 function renderAdminOverview(){
@@ -2557,41 +2600,64 @@ function renderAdminUsers(){
   `;
 }
 
-function updateUserName(oldName, newName){
+async function updateUserName(oldName, newName){
   newName = newName.trim();
   if(!newName || newName===oldName) return;
-  if(USERS_LIVE[newName]){ showToast('Ya existe un usuario con ese nombre','⚠️'); return; }
+  if(USERS_LIVE[newName]){ showToast('Ya existe un usuario con ese nombre','⚠️'); renderAdminUsers(); return; }
+  const iniciales = USERS_LIVE[oldName].initials;
+  const clave = CLAVES_LIVE[oldName];
+  const color = AV_COLORS[oldName];
   USERS_LIVE[newName] = USERS_LIVE[oldName];
-  CLAVES_LIVE[newName] = CLAVES_LIVE[oldName];
+  CLAVES_LIVE[newName] = clave;
+  AV_COLORS[newName] = color;
   delete USERS_LIVE[oldName];
   delete CLAVES_LIVE[oldName];
+  delete AV_COLORS[oldName];
   // Actualizar dropdown login
   rebuildLoginSelect();
-  showToast(`Nombre actualizado a "${newName}" ✓`);
+  try {
+    // El backend guarda por "id" — al renombrar hay que borrar el registro
+    // viejo y crear uno nuevo (no basta con un upsert al mismo id).
+    await apiPost('delete','usuarios',{id: oldName});
+    await apiPost('upsert','usuarios',{id: newName, nombre: newName, iniciales, clave, color});
+    showToast(`Nombre actualizado a "${newName}" ✓`);
+  } catch(e){
+    console.error(e);
+    showToast('Cambio guardado localmente, pero falló la sincronización con el servidor','⚠️');
+  }
 }
 
-function removeUser(name){
+async function removeUser(name){
   const nL = leads.filter(l=>l.responsable===name).length;
   const nC = clientes.filter(c=>c.responsable===name).length;
   if(!confirm(`¿Eliminar a ${name}?\nTiene ${nL} leads y ${nC} clientes asignados.\nAnte de eliminar, usa "Migrar" para reasignar sus registros.`)) return;
   delete USERS_LIVE[name];
   delete CLAVES_LIVE[name];
+  delete AV_COLORS[name];
   rebuildLoginSelect();
   renderAdminUsers();
   renderAdminClaves();
   renderMigrarSelects();
-  showToast(`${name} eliminado del sistema`);
+  try {
+    await apiPost('delete','usuarios',{id: name});
+    showToast(`${name} eliminado del sistema`);
+  } catch(e){
+    console.error(e);
+    showToast(`${name} eliminado localmente, pero falló la sincronización con el servidor`,'⚠️');
+  }
 }
 
-function addUsuario(){
+async function addUsuario(){
   const nombre = document.getElementById('nu-nombre').value.trim();
   const iniciales = document.getElementById('nu-iniciales').value.trim().toUpperCase();
   const clave = document.getElementById('nu-clave').value.trim();
   if(!nombre||!iniciales){ showToast('Nombre e iniciales son requeridos','⚠️'); return; }
   if(USERS_LIVE[nombre]){ showToast('Ya existe un usuario con ese nombre','⚠️'); return; }
+  const claveFinal = clave || CLAVE_EQUIPO;
+  const color = '#'+Math.floor(Math.random()*0x666666+0x333333).toString(16);
   USERS_LIVE[nombre] = { initials: iniciales };
-  CLAVES_LIVE[nombre] = clave || CLAVE_EQUIPO;
-  AV_COLORS[nombre] = '#'+Math.floor(Math.random()*0x666666+0x333333).toString(16);
+  CLAVES_LIVE[nombre] = claveFinal;
+  AV_COLORS[nombre] = color;
   document.getElementById('nu-nombre').value='';
   document.getElementById('nu-iniciales').value='';
   document.getElementById('nu-clave').value='';
@@ -2599,7 +2665,13 @@ function addUsuario(){
   renderAdminUsers();
   renderAdminClaves();
   renderMigrarSelects();
-  showToast(`Usuario ${nombre} agregado ✓`);
+  try {
+    await apiPost('upsert','usuarios',{id: nombre, nombre, iniciales, clave: claveFinal, color});
+    showToast(`Usuario ${nombre} agregado ✓`);
+  } catch(e){
+    console.error(e);
+    showToast(`${nombre} agregado localmente, pero falló la sincronización con el servidor`,'⚠️');
+  }
 }
 
 function rebuildLoginSelect(){
@@ -2629,15 +2701,26 @@ function renderAdminClaves(){
   `).join('');
 }
 
-function guardarClave(name){
+async function guardarClave(name){
   const input = document.getElementById('clave-edit-'+name.replace(/\s/g,'_'));
   const nueva = input.value.trim();
   if(!nueva){ showToast('La clave no puede estar vacía','⚠️'); return; }
   CLAVES_LIVE[name] = nueva;
   showToast(`Clave de ${name} actualizada ✓`);
+  // El admin no vive en la hoja "usuarios" (es un rol especial, no un
+  // registro del equipo), así que su PIN solo se guarda en memoria.
+  if(name === 'Administrador') return;
+  try {
+    await apiPost('upsert','usuarios',{
+      id: name, nombre: name, iniciales: USERS_LIVE[name]?.initials||'', clave: nueva, color: AV_COLORS[name]||''
+    });
+  } catch(e){
+    console.error(e);
+    showToast(`Clave de ${name} guardada localmente, pero falló la sincronización con el servidor`,'⚠️');
+  }
 }
 
-function cambiarClaveEquipo(){
+async function cambiarClaveEquipo(){
   const nueva = document.getElementById('nueva-clave-equipo').value.trim();
   if(!nueva){ showToast('Ingresa la nueva clave','⚠️'); return; }
   CLAVE_EQUIPO = nueva;
@@ -2645,6 +2728,14 @@ function cambiarClaveEquipo(){
   Object.keys(CLAVES_LIVE).forEach(name=>{
     if(name!=='Administrador') CLAVES_LIVE[name] = nueva;
   });
+  try {
+    await Promise.all(Object.keys(USERS_LIVE).map(n => apiPost('upsert','usuarios',{
+      id: n, nombre: n, iniciales: USERS_LIVE[n].initials, clave: nueva, color: AV_COLORS[n]||''
+    })));
+  } catch(e){
+    console.error(e);
+    showToast('Clave del equipo actualizada localmente, pero falló la sincronización con el servidor','⚠️');
+  }
   document.getElementById('nueva-clave-equipo').value='';
   renderAdminClaves();
   showToast(`Clave del equipo actualizada a "${nueva}" ✓`);
